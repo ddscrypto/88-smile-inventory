@@ -33,7 +33,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-20">
-        {children}
+        <div className="max-w-lg mx-auto">
+          {children}
+        </div>
       </main>
 
       {/* Bottom navigation — mobile app style */}
