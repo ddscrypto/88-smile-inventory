@@ -1,0 +1,54 @@
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Staff members who use the system
+export const staffMembers = sqliteTable("staff_members", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  role: text("role").notNull().default("assistant"), // dentist, assistant, hygienist, admin
+});
+
+export const insertStaffSchema = createInsertSchema(staffMembers).omit({ id: true });
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type Staff = typeof staffMembers.$inferSelect;
+
+// Implant inventory items
+export const implants = sqliteTable("implants", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  qrData: text("qr_data").notNull(), // raw QR code content
+  brand: text("brand").notNull().default(""),
+  productName: text("product_name").notNull().default(""),
+  lotNumber: text("lot_number").notNull().default(""),
+  refNumber: text("ref_number").notNull().default(""),
+  size: text("size").notNull().default(""),
+  diameter: text("diameter").notNull().default(""),
+  length: text("length").notNull().default(""),
+  expirationDate: text("expiration_date").notNull().default(""),
+  supplier: text("supplier").notNull().default(""),
+  cost: text("cost").notNull().default(""),
+  location: text("location").notNull().default(""), // where in office
+  quantity: integer("quantity").notNull().default(1),
+  status: text("status").notNull().default("in"), // in, out
+  addedBy: text("added_by").notNull().default(""),
+  addedAt: text("added_at").notNull(),
+  notes: text("notes").notNull().default(""),
+});
+
+export const insertImplantSchema = createInsertSchema(implants).omit({ id: true });
+export type InsertImplant = z.infer<typeof insertImplantSchema>;
+export type Implant = typeof implants.$inferSelect;
+
+// Activity log for check-in/out tracking
+export const activityLog = sqliteTable("activity_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  implantId: integer("implant_id").notNull(),
+  action: text("action").notNull(), // checked_in, checked_out, added, updated, deleted
+  staffName: text("staff_name").notNull(),
+  timestamp: text("timestamp").notNull(),
+  notes: text("notes").notNull().default(""),
+});
+
+export const insertActivitySchema = createInsertSchema(activityLog).omit({ id: true });
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type Activity = typeof activityLog.$inferSelect;
