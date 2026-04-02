@@ -145,6 +145,52 @@ export default function Scanner() {
     }
   }, []);
 
+  // Helper: auto-fill form from a catalog match + GS1 data
+  const autoFillFromCatalog = (match: CatalogItem, gs1: { lot?: string; expiration?: string }) => {
+    setSelectedCatalog(match);
+    const prodName = match.body === match.line ? match.body : `${match.body} ${match.line}`;
+    setForm(f => ({
+      ...f,
+      brand: match.brand,
+      productName: prodName,
+      refNumber: match.refNumber,
+      diameter: match.diameter,
+      length: match.length,
+      lotNumber: gs1.lot || f.lotNumber,
+      expirationDate: gs1.expiration || f.expirationDate,
+    }));
+    setAutoFilled(true);
+    setMode("manualForm");
+    setIsProcessing(false);
+  };
+
+  // Helper: try to match GTIN against local catalog
+  // Neodent GTINs: 07899878XXXXCC where XXXXXX maps to ref number digits
+  const matchGtinToCatalog = (gtin: string): CatalogItem | null => {
+    if (!gtin || catalog.length === 0) return null;
+
+    // Strategy 1: Extract digits from GTIN and try matching catalog ref numbers
+    // Neodent ref numbers look like "140.943" — the GTIN contains these digits
+    const gtinDigits = gtin.replace(/^0+/, ""); // strip leading zeros
+
+    for (const item of catalog) {
+      const refClean = item.refNumber.replace(/\./g, ""); // "140.943" → "140943"
+      // Check if the GTIN contains the ref number digits
+      if (gtinDigits.includes(refClean)) return item;
+    }
+
+    // Strategy 2: Try the GTIN item reference portion (positions 2-13 for GTIN-14, or 1-12 for GTIN-13)
+    // Company prefix for Neodent: 7899878, item ref follows
+    const itemRef = gtin.length === 14 ? gtin.slice(8, 13) : gtin.slice(7, 12);
+    for (const item of catalog) {
+      const refDigits = item.refNumber.replace(/\./g, "");
+      // Last N digits of ref match the item reference portion
+      if (itemRef.endsWith(refDigits.slice(-3)) && refDigits.length >= 3) return item;
+    }
+
+    return null;
+  };
+
   const handleScanResult = async (data: string) => {
     setScannedData(data);
     setIsProcessing(true);
@@ -159,7 +205,7 @@ export default function Scanner() {
       expirationDate: gs1.expiration || f.expirationDate,
     }));
 
-    // 2. Check if already in inventory by QR data
+    // 2. DUPLICATE CHECK — by QR data first, then by lot number
     try {
       const res = await apiRequest("GET", `/api/implants/qr/${encodeURIComponent(data)}`);
       const implant = await res.json();
@@ -168,60 +214,52 @@ export default function Scanner() {
       setIsProcessing(false);
       return;
     } catch {
-      // Not in inventory — continue
+      // Not found by QR — try lot number
     }
 
-    // Also try matching by lot number for re-scan scenarios
     if (gs1.lot) {
       try {
-        const lotRes = await apiRequest("GET", `/api/implants?q=${encodeURIComponent(gs1.lot)}`);
-        const lotResults = await lotRes.json();
-        // Find exact lot match
-        const lotMatch = lotResults.find((i: any) => i.lotNumber === gs1.lot);
-        if (lotMatch) {
+        const lotRes = await apiRequest("GET", `/api/implants/lot/${encodeURIComponent(gs1.lot)}`);
+        const lotMatch = await lotRes.json();
+        if (lotMatch && lotMatch.id) {
           setFoundImplant(lotMatch);
           setMode("found");
           setIsProcessing(false);
           return;
         }
-      } catch {}
+      } catch {
+        // Not found by lot — continue to add flow
+      }
     }
 
-    // 3. If we have a GTIN, look up via GUDID to get catalog number
+    // 3. AUTO-MATCH from catalog — try multiple strategies
+    // Strategy A: Direct GTIN-to-catalog matching (works for Neodent without GUDID)
+    if (gs1.gtin) {
+      const localMatch = matchGtinToCatalog(gs1.gtin);
+      if (localMatch) {
+        autoFillFromCatalog(localMatch, gs1);
+        return;
+      }
+    }
+
+    // Strategy B: Try GUDID API (works for FDA-registered devices)
     if (gs1.gtin) {
       try {
         const lookupRes = await apiRequest("GET", `/api/lookup-gtin/${gs1.gtin}`);
         const gudid = await lookupRes.json();
 
         if (gudid.catalogNumber) {
-          // Find matching catalog item by ref number
           const match = catalog.find(c =>
             c.refNumber === gudid.catalogNumber ||
             c.refNumber.replace(".", "") === gudid.catalogNumber.replace(".", "")
           );
-
           if (match) {
-            // AUTO-FILL EVERYTHING!
-            setSelectedCatalog(match);
-            const prodName = match.body === match.line ? match.body : `${match.body} ${match.line}`;
-            setForm(f => ({
-              ...f,
-              brand: match.brand,
-              productName: prodName,
-              refNumber: match.refNumber,
-              diameter: match.diameter,
-              length: match.length,
-              lotNumber: gs1.lot || f.lotNumber,
-              expirationDate: gs1.expiration || f.expirationDate,
-            }));
-            setAutoFilled(true);
-            setMode("manualForm"); // Go straight to review form
-            setIsProcessing(false);
+            autoFillFromCatalog(match, gs1);
             return;
           }
         }
       } catch {
-        // GUDID lookup failed — fall through to catalog selector
+        // GUDID lookup failed — continue
       }
     }
 

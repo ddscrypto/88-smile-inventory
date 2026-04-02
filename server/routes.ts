@@ -121,6 +121,12 @@ export async function registerRoutes(
     res.json(implant);
   });
 
+  app.get("/api/implants/lot/:lotNumber", (req, res) => {
+    const implant = storage.getImplantByLot(decodeURIComponent(req.params.lotNumber));
+    if (!implant) return res.status(404).json({ error: "Not found" });
+    res.json(implant);
+  });
+
   app.post("/api/implants", (req, res) => {
     const parsed = insertImplantSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.message });

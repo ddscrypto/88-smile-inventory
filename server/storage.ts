@@ -36,6 +36,7 @@ export interface IStorage {
   getImplants(): Implant[];
   getImplantById(id: number): Implant | undefined;
   getImplantByQr(qrData: string): Implant | undefined;
+  getImplantByLot(lotNumber: string): Implant | undefined;
   searchImplants(query: string): Implant[];
   createImplant(implant: InsertImplant): Implant;
   updateImplant(id: number, data: Partial<InsertImplant>): Implant | undefined;
@@ -267,6 +268,7 @@ export class DatabaseStorage implements IStorage {
   getImplants(): Implant[] { return db.select().from(implants).all(); }
   getImplantById(id: number): Implant | undefined { return db.select().from(implants).where(eq(implants.id, id)).get(); }
   getImplantByQr(qrData: string): Implant | undefined { return db.select().from(implants).where(eq(implants.qrData, qrData)).get(); }
+  getImplantByLot(lotNumber: string): Implant | undefined { return db.select().from(implants).where(eq(implants.lotNumber, lotNumber)).get(); }
   searchImplants(query: string): Implant[] {
     const p = `%${query}%`;
     return db.select().from(implants).where(
