@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ScanLine, Package, Settings, BookOpen } from "lucide-react";
+import { LayoutDashboard, ScanLine, Package, Settings, BookOpen, LogOut } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
+import { useSession } from "@/lib/session-context";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
@@ -12,6 +13,7 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { staffName, staffRole, logout } = useSession();
   const [isDark, setIsDark] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
   );
@@ -36,18 +38,34 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <span className="text-sm font-semibold tracking-tight" data-testid="app-title">88 Smile Designs</span>
             </div>
           </div>
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
-            aria-label="Toggle theme"
-            data-testid="button-theme-toggle"
-          >
-            {isDark ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <div className="flex items-center gap-1.5">
+            {staffName && (
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-muted/60 hover:bg-muted transition-colors"
+                data-testid="button-staff-session"
+                title={`Signed in as ${staffName} — tap to switch`}
+              >
+                <div className="w-4.5 h-4.5 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-[9px] font-bold text-primary">{staffName.charAt(0)}</span>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground max-w-[60px] truncate">{staffName}</span>
+                <LogOut className="w-3 h-3 text-muted-foreground/60" />
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+              aria-label="Toggle theme"
+              data-testid="button-theme-toggle"
+            >
+              {isDark ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 

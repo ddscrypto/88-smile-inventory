@@ -10,10 +10,13 @@ import Scanner from "@/pages/scanner";
 import Inventory from "@/pages/inventory";
 import ImplantDetail from "@/pages/implant-detail";
 import ActivityPage from "@/pages/activity";
+import StaffReportPage from "@/pages/staff-report";
 import SettingsPage from "@/pages/settings";
 import LibraryPage from "@/pages/library";
 import AppLayout from "@/components/app-layout";
 import LockScreen, { useLockScreen } from "@/pages/lock-screen";
+import StaffLogin from "@/pages/staff-login";
+import { SessionProvider, useSession } from "@/lib/session-context";
 
 function AppRouter() {
   return (
@@ -24,6 +27,7 @@ function AppRouter() {
         <Route path="/inventory" component={Inventory} />
         <Route path="/implant/:id" component={ImplantDetail} />
         <Route path="/activity" component={ActivityPage} />
+        <Route path="/staff-report" component={StaffReportPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/library" component={LibraryPage} />
         <Route component={NotFound} />
@@ -32,20 +36,33 @@ function AppRouter() {
   );
 }
 
-function App() {
+function AppGate() {
   const { unlocked, unlock } = useLockScreen();
+  const { isLoggedIn, login } = useSession();
 
+  if (!unlocked) {
+    return <LockScreen onUnlock={unlock} />;
+  }
+
+  if (!isLoggedIn) {
+    return <StaffLogin onLogin={login} />;
+  }
+
+  return (
+    <Router hook={useHashLocation}>
+      <AppRouter />
+    </Router>
+  );
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        {!unlocked ? (
-          <LockScreen onUnlock={unlock} />
-        ) : (
-          <Router hook={useHashLocation}>
-            <AppRouter />
-          </Router>
-        )}
+        <SessionProvider>
+          <Toaster />
+          <AppGate />
+        </SessionProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

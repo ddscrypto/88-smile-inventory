@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Package, ArrowDownLeft, ArrowUpRight, AlertTriangle, XCircle, ChevronRight, TrendingUp, ShoppingCart } from "lucide-react";
+import { Package, ArrowDownLeft, ArrowUpRight, AlertTriangle, XCircle, ChevronRight, TrendingUp, ShoppingCart, Users } from "lucide-react";
 import { Link } from "wouter";
 import type { Activity, Implant } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +30,15 @@ interface LowStockItem {
   inStockCount: number;
 }
 
+interface StaffSummary {
+  staffName: string;
+  totalActions: number;
+  checkouts: number;
+  checkins: number;
+  added: number;
+  lastActive: string;
+}
+
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -49,6 +58,10 @@ export default function Dashboard() {
 
   const { data: lowStock = [], isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
     queryKey: ["/api/analytics/low-stock"],
+  });
+
+  const { data: staffSummary = [], isLoading: staffLoading } = useQuery<StaffSummary[]>({
+    queryKey: ["/api/analytics/staff-summary"],
   });
 
   const recentActivities = activities?.slice(0, 6) || [];
@@ -199,6 +212,51 @@ export default function Dashboard() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Staff Breakdown */}
+      {!staffLoading && staffSummary.length > 0 && (
+        <div data-testid="staff-breakdown-section">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-3.5 h-3.5 text-muted-foreground/70" />
+              <h3 className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground">Staff Activity</h3>
+            </div>
+            <Link href="/staff-report">
+              <span className="text-[12px] text-primary font-medium flex items-center gap-0.5 cursor-pointer" data-testid="link-staff-report">
+                Report <ChevronRight className="w-3 h-3" />
+              </span>
+            </Link>
+          </div>
+          <div className="rounded-2xl bg-card border border-border/60 overflow-hidden divide-y divide-border/30">
+            {staffSummary.slice(0, 4).map((s, idx) => (
+              <Link key={s.staffName} href="/staff-report">
+                <div className="px-3.5 py-2.5 flex items-center gap-3 hover:bg-muted/30 transition-colors cursor-pointer" data-testid={`staff-dash-${idx}`}>
+                  <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <span className="text-[11px] font-bold text-primary">{s.staffName.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium">{s.staffName}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right">
+                      <span className="text-[12px] font-bold tabular-nums text-amber-500">{s.checkouts}</span>
+                      <span className="text-[9px] text-muted-foreground ml-0.5">out</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[12px] font-bold tabular-nums text-emerald-500">{s.checkins}</span>
+                      <span className="text-[9px] text-muted-foreground ml-0.5">in</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[12px] font-bold tabular-nums text-primary">{s.added}</span>
+                      <span className="text-[9px] text-muted-foreground ml-0.5">add</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}

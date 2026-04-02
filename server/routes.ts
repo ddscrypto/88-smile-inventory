@@ -199,6 +199,19 @@ export async function registerRoutes(
     res.json({ totalItems, inStock, checkedOut, expiringSoon, expired, brands });
   });
 
+  // --- Analytics: Staff Summary ---
+  app.get("/api/analytics/staff-summary", (_req, res) => {
+    res.json(storage.getStaffActivitySummary());
+  });
+
+  // --- Analytics: Staff Detail ---
+  app.get("/api/analytics/staff/:name", (req, res) => {
+    const name = decodeURIComponent(req.params.name);
+    const limit = Number(req.query.limit) || 100;
+    const activities = storage.getStaffActivities(name, limit);
+    res.json(activities);
+  });
+
   // --- Analytics: Most Used Sizes ---
   app.get("/api/analytics/most-used", (req, res) => {
     const limit = Number(req.query.limit) || 5;

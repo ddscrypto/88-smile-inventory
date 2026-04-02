@@ -294,6 +294,37 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => ({ diameter: r.diameter, length: r.length, body: r.body || "", line: r.line || "", count: r.cnt }));
   }
 
+  // Analytics: staff activity summary
+  getStaffActivitySummary(): { staffName: string; totalActions: number; checkouts: number; checkins: number; added: number; lastActive: string }[] {
+    const rows = sqlite.prepare(`
+      SELECT 
+        staff_name,
+        COUNT(*) as total,
+        SUM(CASE WHEN action = 'checked_out' THEN 1 ELSE 0 END) as checkouts,
+        SUM(CASE WHEN action = 'checked_in' THEN 1 ELSE 0 END) as checkins,
+        SUM(CASE WHEN action = 'added' THEN 1 ELSE 0 END) as added,
+        MAX(timestamp) as last_active
+      FROM activity_log
+      GROUP BY staff_name
+      ORDER BY total DESC
+    `).all() as any[];
+    return rows.map(r => ({
+      staffName: r.staff_name,
+      totalActions: r.total,
+      checkouts: r.checkouts,
+      checkins: r.checkins,
+      added: r.added,
+      lastActive: r.last_active,
+    }));
+  }
+
+  // Analytics: staff activity for a specific person
+  getStaffActivities(staffName: string, limit = 100): Activity[] {
+    return sqlite.prepare(`
+      SELECT * FROM activity_log WHERE staff_name = ? ORDER BY id DESC LIMIT ?
+    `).all(staffName, limit) as any[];
+  }
+
   // Analytics: low stock items (in-stock count by size)
   getLowStockItems(threshold: number): { diameter: string; length: string; body: string; line: string; inStockCount: number }[] {
     const rows = sqlite.prepare(`

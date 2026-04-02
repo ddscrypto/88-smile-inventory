@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Camera, Plus, CheckCircle2, ArrowDownLeft, ArrowUpRight, Keyboard, X, ChevronRight, Package } from "lucide-react";
 import { useLocation } from "wouter";
 import type { Staff, Implant, CatalogItem } from "@shared/schema";
+import { useSession } from "@/lib/session-context";
 
 type ScanMode = "idle" | "scanning" | "found" | "selectCatalog" | "manualForm";
 
@@ -84,9 +85,12 @@ export default function Scanner() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
+  const { staffName: sessionStaff } = useSession();
   const { data: staff = [] } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
   const { data: catalog = [] } = useQuery<CatalogItem[]>({ queryKey: ["/api/catalog"] });
   const [selectedStaff, setSelectedStaff] = useState("");
+  // Auto-set staff from session
+  const activeStaff = selectedStaff || sessionStaff || "Unknown";
 
   // Catalog filter state
   const [catLine, setCatLine] = useState<string>("all");
@@ -265,7 +269,7 @@ export default function Scanner() {
         location: form.location,
         quantity: 1,
         status: "in",
-        addedBy: selectedStaff || "Unknown",
+        addedBy: activeStaff,
         addedAt: new Date().toISOString(),
         notes: form.notes,
       });
@@ -282,7 +286,7 @@ export default function Scanner() {
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/implants/${foundImplant!.id}/checkout`, { staffName: selectedStaff || "Unknown", notes: "" });
+      const res = await apiRequest("POST", `/api/implants/${foundImplant!.id}/checkout`, { staffName: activeStaff, notes: "" });
       return res.json();
     },
     onSuccess: () => {
@@ -296,7 +300,7 @@ export default function Scanner() {
 
   const checkinMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/implants/${foundImplant!.id}/checkin`, { staffName: selectedStaff || "Unknown", notes: "" });
+      const res = await apiRequest("POST", `/api/implants/${foundImplant!.id}/checkin`, { staffName: activeStaff, notes: "" });
       return res.json();
     },
     onSuccess: () => {
@@ -348,18 +352,17 @@ export default function Scanner() {
         </p>
       </div>
 
-      {/* Staff selector */}
-      {(mode === "idle" || mode === "scanning") && (
-        <Select value={selectedStaff} onValueChange={setSelectedStaff}>
-          <SelectTrigger data-testid="select-staff" className="h-11 rounded-xl bg-card border-border/60 text-sm">
-            <SelectValue placeholder="Who's scanning?" />
-          </SelectTrigger>
-          <SelectContent>
-            {staff.map(s => (
-              <SelectItem key={s.id} value={s.name}>{s.name} <span className="text-muted-foreground capitalize">· {s.role}</span></SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Session staff badge */}
+      {(mode === "idle" || mode === "scanning") && sessionStaff && (
+        <div className="rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/15 px-3.5 py-2.5 flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-primary">{sessionStaff.charAt(0)}</span>
+          </div>
+          <div>
+            <span className="text-[13px] font-medium">{sessionStaff}</span>
+            <p className="text-[10px] text-muted-foreground">All actions tagged to you</p>
+          </div>
+        </div>
       )}
 
       {/* ========== IDLE ========== */}
@@ -602,17 +605,15 @@ export default function Scanner() {
             </div>
           ) : null}
 
-          {/* Staff selector in form */}
-          <Select value={selectedStaff} onValueChange={setSelectedStaff}>
-            <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-sm">
-              <SelectValue placeholder="Who's scanning?" />
-            </SelectTrigger>
-            <SelectContent>
-              {staff.map(s => (
-                <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Session staff badge in form */}
+          {sessionStaff && (
+            <div className="rounded-xl bg-primary/5 dark:bg-primary/10 border border-primary/15 px-3.5 py-2 flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-primary">{sessionStaff.charAt(0)}</span>
+              </div>
+              <span className="text-[12px] font-medium">Adding as {sessionStaff}</span>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-border/60 bg-card p-4 space-y-3">
             {/* Show brand/product/size fields only if no catalog item selected */}
