@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X } from "lucide-react";
+import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X, Bell } from "lucide-react";
 import type { Staff } from "@shared/schema";
 
 export default function SettingsPage() {
@@ -228,6 +228,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Low Stock Alert Threshold */}
+      <LowStockSettings />
+
       {/* About */}
       <div>
         <div className="flex items-center gap-2 mb-3">
@@ -260,6 +263,81 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between items-center px-4 py-3">
       <span className="text-[13px] text-muted-foreground">{label}</span>
       <span className="text-[13px] font-medium">{value}</span>
+    </div>
+  );
+}
+
+function LowStockSettings() {
+  const { toast } = useToast();
+  const { data: setting } = useQuery<{ key: string; value: string | null }>({
+    queryKey: ["/api/settings", "low_stock_threshold"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings/low_stock_threshold");
+      return res.json();
+    },
+  });
+
+  const currentValue = setting?.value ? parseInt(setting.value, 10) : 2;
+  const [threshold, setThreshold] = useState<string>("");
+  const displayValue = threshold || String(currentValue);
+
+  const saveMutation = useMutation({
+    mutationFn: async (val: number) => {
+      await apiRequest("PUT", "/api/settings/low_stock_threshold", { value: String(val) });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings", "low_stock_threshold"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics/low-stock"] });
+      setThreshold("");
+      toast({ title: "Alert threshold updated" });
+    },
+  });
+
+  const handleSave = () => {
+    const val = parseInt(displayValue, 10);
+    if (isNaN(val) || val < 1 || val > 50) return;
+    saveMutation.mutate(val);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Bell className="w-3.5 h-3.5 text-muted-foreground/70" />
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Alerts</h3>
+      </div>
+
+      <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
+        <div>
+          <p className="text-[13px] font-medium">Low Stock Alert</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Show a reorder warning on the dashboard when any implant size has this many or fewer in stock
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            data-testid="input-low-stock-threshold"
+            type="number"
+            min={1}
+            max={50}
+            value={displayValue}
+            onChange={(e) => setThreshold(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            className="w-20 h-9 rounded-xl text-center text-[13px] bg-muted/40 border-0 focus-visible:ring-1 tabular-nums font-semibold"
+          />
+          <span className="text-[12px] text-muted-foreground">items or fewer</span>
+          {threshold && threshold !== String(currentValue) && (
+            <Button
+              size="sm"
+              className="h-8 rounded-xl text-[12px] ml-auto"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-threshold"
+            >
+              Save
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

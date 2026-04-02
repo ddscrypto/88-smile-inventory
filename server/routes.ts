@@ -199,5 +199,31 @@ export async function registerRoutes(
     res.json({ totalItems, inStock, checkedOut, expiringSoon, expired, brands });
   });
 
+  // --- Analytics: Most Used Sizes ---
+  app.get("/api/analytics/most-used", (req, res) => {
+    const limit = Number(req.query.limit) || 5;
+    res.json(storage.getMostUsedSizes(limit));
+  });
+
+  // --- Analytics: Low Stock Alert ---
+  app.get("/api/analytics/low-stock", (_req, res) => {
+    const thresholdStr = storage.getSetting("low_stock_threshold");
+    const threshold = thresholdStr ? parseInt(thresholdStr, 10) : 2;
+    res.json(storage.getLowStockItems(threshold));
+  });
+
+  // --- Settings ---
+  app.get("/api/settings/:key", (req, res) => {
+    const value = storage.getSetting(req.params.key);
+    res.json({ key: req.params.key, value: value ?? null });
+  });
+
+  app.put("/api/settings/:key", (req, res) => {
+    const { value } = req.body;
+    if (value === undefined || value === null) return res.status(400).json({ error: "value required" });
+    storage.setSetting(req.params.key, String(value));
+    res.json({ key: req.params.key, value: String(value) });
+  });
+
   return httpServer;
 }

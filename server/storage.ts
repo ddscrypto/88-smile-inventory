@@ -3,10 +3,11 @@ import {
   type Implant, type InsertImplant, implants,
   type Activity, type InsertActivity, activityLog,
   type CatalogItem, type InsertCatalog, catalogItems,
+  appSettings,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
-import { eq, desc, like, or } from "drizzle-orm";
+import { eq, desc, like, or, sql } from "drizzle-orm";
 
 const sqlite = new Database("data.db");
 sqlite.pragma("journal_mode = WAL");
@@ -39,6 +40,14 @@ export interface IStorage {
   getActivities(limit?: number): Activity[];
   getActivitiesByImplant(implantId: number): Activity[];
   createActivity(activity: InsertActivity): Activity;
+
+  // Settings
+  getSetting(key: string): string | undefined;
+  setSetting(key: string, value: string): void;
+
+  // Analytics
+  getMostUsedSizes(limit?: number): { diameter: string; length: string; body: string; line: string; count: number }[];
+  getLowStockItems(threshold: number): { diameter: string; length: string; body: string; line: string; inStockCount: number }[];
 }
 
 export class DatabaseStorage implements IStorage {
@@ -89,6 +98,10 @@ export class DatabaseStorage implements IStorage {
         staff_name TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         notes TEXT NOT NULL DEFAULT ''
+      );
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
       );
     `);
 
@@ -252,6 +265,47 @@ export class DatabaseStorage implements IStorage {
   getActivities(limit = 50): Activity[] { return db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(limit).all(); }
   getActivitiesByImplant(implantId: number): Activity[] { return db.select().from(activityLog).where(eq(activityLog.implantId, implantId)).orderBy(desc(activityLog.id)).all(); }
   createActivity(activity: InsertActivity): Activity { return db.insert(activityLog).values(activity).returning().get(); }
+
+  // Settings
+  getSetting(key: string): string | undefined {
+    const row = db.select().from(appSettings).where(eq(appSettings.key, key)).get();
+    return row?.value;
+  }
+  setSetting(key: string, value: string): void {
+    const existing = this.getSetting(key);
+    if (existing !== undefined) {
+      db.update(appSettings).set({ value }).where(eq(appSettings.key, key)).run();
+    } else {
+      db.insert(appSettings).values({ key, value }).run();
+    }
+  }
+
+  // Analytics: most checked-out implant sizes
+  getMostUsedSizes(limit = 10): { diameter: string; length: string; body: string; line: string; count: number }[] {
+    const rows = sqlite.prepare(`
+      SELECT i.diameter, i.length, i.product_name as body, i.brand as line, COUNT(*) as cnt
+      FROM activity_log a
+      JOIN implants i ON a.implant_id = i.id
+      WHERE a.action = 'checked_out' AND i.diameter != '' AND i.length != ''
+      GROUP BY i.diameter, i.length
+      ORDER BY cnt DESC
+      LIMIT ?
+    `).all(limit) as any[];
+    return rows.map(r => ({ diameter: r.diameter, length: r.length, body: r.body || "", line: r.line || "", count: r.cnt }));
+  }
+
+  // Analytics: low stock items (in-stock count by size)
+  getLowStockItems(threshold: number): { diameter: string; length: string; body: string; line: string; inStockCount: number }[] {
+    const rows = sqlite.prepare(`
+      SELECT diameter, length, product_name as body, brand as line, COUNT(*) as cnt
+      FROM implants
+      WHERE status = 'in' AND diameter != '' AND length != ''
+      GROUP BY diameter, length
+      HAVING cnt <= ?
+      ORDER BY cnt ASC
+    `).all(threshold) as any[];
+    return rows.map(r => ({ diameter: r.diameter, length: r.length, body: r.body || "", line: r.line || "", inStockCount: r.cnt }));
+  }
 }
 
 export const storage = new DatabaseStorage();
