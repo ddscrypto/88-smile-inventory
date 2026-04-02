@@ -155,7 +155,9 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                     placeholder="Enter password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
                     autoFocus
-                    autoComplete="new-password"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && newPin.length >= 4) {
                         // Focus confirm field
@@ -183,7 +185,9 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                     onChange={(e) => { setConfirmPin(e.target.value); setError(""); }}
                     placeholder="Confirm password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10"
-                    autoComplete="new-password"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
                   />
                 </div>
@@ -225,7 +229,9 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                     placeholder="Password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
                     autoFocus
-                    autoComplete="current-password"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     onKeyDown={(e) => e.key === "Enter" && handleVerify()}
                   />
                   <button
