@@ -234,6 +234,14 @@ export default function Scanner() {
     // 1. Parse GS1 data
     const gs1 = parseGS1(data);
 
+    // DEBUG: show raw scan + parsed fields so we can fix parsing
+    const rawHex = Array.from(data).map(c => c.charCodeAt(0) > 31 ? c : `[${c.charCodeAt(0)}]`).join("");
+    toast({
+      title: "📷 Scan debug",
+      description: `raw: ${rawHex.slice(0,60)}\ngtin: ${gs1.gtin||"—"} lot: ${gs1.lot||"—"} exp: ${gs1.expiration||"—"}`,
+      duration: 15000,
+    });
+
     // Pre-fill form with parsed data
     setForm(f => ({
       ...f,
