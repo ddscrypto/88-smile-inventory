@@ -13,6 +13,7 @@ import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
 import LibraryPage from "@/pages/library";
 import AppLayout from "@/components/app-layout";
+import LockScreen, { useLockScreen } from "@/pages/lock-screen";
 
 function AppRouter() {
   return (
@@ -32,13 +33,19 @@ function AppRouter() {
 }
 
 function App() {
+  const { unlocked, unlock } = useLockScreen();
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router hook={useHashLocation}>
-          <AppRouter />
-        </Router>
+        {!unlocked ? (
+          <LockScreen onUnlock={unlock} />
+        ) : (
+          <Router hook={useHashLocation}>
+            <AppRouter />
+          </Router>
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );
