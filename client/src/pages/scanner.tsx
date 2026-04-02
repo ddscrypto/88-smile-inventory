@@ -23,50 +23,86 @@ function formatGS1Date(yymmdd: string): string {
   return `${century}${yy}-${mm}-${dd}`;
 }
 
+// GS1 Application Identifier fixed lengths (AI → total field length including AI digits)
+// Variable-length AIs are terminated by GS separator or next known AI
+const GS1_FIXED: Record<string, number> = {
+  "00": 20, "01": 16, "02": 16, "03": 16, "04": 18,
+  "11": 8,  "12": 8,  "13": 8,  "14": 8,  "15": 8,
+  "16": 8,  "17": 8,  "18": 8,  "19": 8,
+  "20": 4,
+  "31": 10, "32": 10, "33": 10, "34": 10, "35": 10, "36": 10,
+  "41": 16,
+};
+
 function parseGS1(raw: string): { gtin?: string; lot?: string; expiration?: string; mfgDate?: string; serial?: string } {
   const result: any = {};
 
-  // Remove any leading/trailing whitespace
   let data = raw.trim();
 
-  // Normalize GS separators: handle \x1D (raw), <GS> (escaped from zxing-wasm), and FNC1
-  data = data.replace(/<GS>/g, "|").replace(/\x1d/g, "|").replace(/\u001d/g, "|");
+  // Normalize GS separators: \x1D (raw GS), <GS> (zxing-wasm escaped), \u001d (unicode)
+  data = data.replace(/<GS>/g, "\x1d").replace(/\u001d/g, "\x1d");
 
-  // Check if it's human-readable format with parentheses
-  const hasParens = data.includes("(01)");
-
-  if (hasParens) {
-    // Human-readable: (01)GTIN(17)EXP(10)LOT etc.
+  // Human-readable format with parentheses: (01)GTIN(17)EXP...
+  if (data.includes("(01)") || data.includes("(10)") || data.includes("(17)")) {
     const gtinMatch = data.match(/\(01\)(\d{14})/);
-    const expMatch = data.match(/\(17\)(\d{6})/);
-    const mfgMatch = data.match(/\(11\)(\d{6})/);
-    const lotMatch = data.match(/\(10\)([^\(|]+)/);
-    const snMatch = data.match(/\(21\)([^\(|]+)/);
-
+    const expMatch  = data.match(/\(17\)(\d{6})/);
+    const mfgMatch  = data.match(/\(11\)(\d{6})/);
+    const lotMatch  = data.match(/\(10\)([^(\x1d]+)/);
+    const snMatch   = data.match(/\(21\)([^(\x1d]+)/);
     if (gtinMatch) result.gtin = gtinMatch[1];
-    if (expMatch) result.expiration = formatGS1Date(expMatch[1]);
-    if (mfgMatch) result.mfgDate = formatGS1Date(mfgMatch[1]);
-    if (lotMatch) result.lot = lotMatch[1].trim();
-    if (snMatch) result.serial = snMatch[1].trim();
-  } else {
-    // Raw DataMatrix: no parens, AIs concatenated, GS separates variable-length fields
+    if (expMatch)  result.expiration = formatGS1Date(expMatch[1]);
+    if (mfgMatch)  result.mfgDate    = formatGS1Date(mfgMatch[1]);
+    if (lotMatch)  result.lot        = lotMatch[1].trim();
+    if (snMatch)   result.serial     = snMatch[1].trim();
+    return result;
+  }
 
-    // Fixed-length AIs first
-    const ai01 = data.match(/01(\d{14})/);
-    if (ai01) result.gtin = ai01[1];
+  // Raw concatenated GS1: walk through character by character
+  // Each segment: AI digits + value, fixed-length AIs have known lengths,
+  // variable-length AIs are terminated by \x1d or end-of-string
+  let i = 0;
+  while (i < data.length) {
+    // Skip GS separators
+    if (data[i] === "\x1d") { i++; continue; }
 
-    const ai17 = data.match(/17(\d{6})/);
-    if (ai17) result.expiration = formatGS1Date(ai17[1]);
-
-    const ai11 = data.match(/11(\d{6})/);
-    if (ai11) result.mfgDate = formatGS1Date(ai11[1]);
-
-    // Variable-length AIs (terminated by GS/pipe or end of string)
-    const ai10 = data.match(/10([^|]+)/);
-    if (ai10) result.lot = ai10[1].replace(/\d{2}\d{14}/, "").trim(); // clean up if GTIN stuck
-
-    const ai21 = data.match(/21([^|]+)/);
-    if (ai21) result.serial = ai21[1].trim();
+    // Try 4-digit AI first, then 3-digit, then 2-digit
+    let ai = "";
+    let valueStart = i;
+    for (const len of [4, 3, 2]) {
+      const candidate = data.slice(i, i + len);
+      if (/^\d+$/.test(candidate)) {
+        // Check if it's a known AI
+        const fixedLen = GS1_FIXED[candidate];
+        if (fixedLen !== undefined) {
+          ai = candidate;
+          valueStart = i + len;
+          const valueLen = fixedLen - len;
+          const value = data.slice(valueStart, valueStart + valueLen);
+          switch (ai) {
+            case "01": result.gtin = value; break;
+            case "17": result.expiration = formatGS1Date(value); break;
+            case "11": result.mfgDate = formatGS1Date(value); break;
+          }
+          i = valueStart + valueLen;
+          break;
+        } else if (["10", "21", "22", "30", "37"].includes(candidate) ||
+                   (len === 2 && /^(24|25|26|91|92|93|94|95|96|97|98|99)$/.test(candidate))) {
+          // Variable-length AI — read until GS or end
+          ai = candidate;
+          valueStart = i + len;
+          const gsPos = data.indexOf("\x1d", valueStart);
+          const value = gsPos === -1 ? data.slice(valueStart) : data.slice(valueStart, gsPos);
+          switch (ai) {
+            case "10": result.lot = value.trim(); break;
+            case "21": result.serial = value.trim(); break;
+          }
+          i = gsPos === -1 ? data.length : gsPos;
+          break;
+        }
+      }
+    }
+    // If no AI matched, advance one char to avoid infinite loop
+    if (!ai) i++;
   }
 
   return result;

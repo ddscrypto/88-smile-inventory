@@ -149,18 +149,22 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     data-testid="input-new-pin"
-                    type={showPin ? "text" : "password"}
+                    type="text"
+                    inputMode="text"
                     value={newPin}
                     onChange={(e) => { setNewPin(e.target.value); setError(""); }}
                     placeholder="Enter password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
+                    style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
                     autoFocus
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     data-lpignore="true"
                     data-1p-ignore="true"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && newPin.length >= 4) {
-                        // Focus confirm field
                         const next = document.querySelector<HTMLInputElement>('[data-testid="input-confirm-pin"]');
                         next?.focus();
                       }
@@ -180,12 +184,17 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     data-testid="input-confirm-pin"
-                    type={showPin ? "text" : "password"}
+                    type="text"
+                    inputMode="text"
                     value={confirmPin}
                     onChange={(e) => { setConfirmPin(e.target.value); setError(""); }}
                     placeholder="Confirm password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10"
+                    style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     data-lpignore="true"
                     data-1p-ignore="true"
                     onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
@@ -223,13 +232,18 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     data-testid="input-staff-pin"
-                    type={showPin ? "text" : "password"}
+                    type="text"
+                    inputMode="text"
                     value={pin}
                     onChange={(e) => { setPin(e.target.value); setError(""); }}
                     placeholder="Password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
+                    style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
                     autoFocus
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     data-lpignore="true"
                     data-1p-ignore="true"
                     onKeyDown={(e) => e.key === "Enter" && handleVerify()}
