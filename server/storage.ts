@@ -14,7 +14,9 @@ function hashPin(pin: string): string {
   return createHash("sha256").update(pin).digest("hex");
 }
 
-const sqlite = new Database("data.db");
+// Use /data/data.db on Render (persistent disk) or local data.db in dev
+const DB_PATH = process.env.NODE_ENV === "production" ? "/data/data.db" : "data.db";
+const sqlite = new Database(DB_PATH);
 sqlite.pragma("journal_mode = WAL");
 
 export const db = drizzle(sqlite);
