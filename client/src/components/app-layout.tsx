@@ -1,14 +1,15 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, ScanLine, Package, Settings, BookOpen, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Search, Bell, Menu, LogOut } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useSession } from "@/lib/session-context";
+import { LogoIcon } from "@/components/logo";
 
 const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Home" },
-  { href: "/library", icon: BookOpen, label: "Library" },
-  { href: "/scan", icon: ScanLine, label: "Scan" },
-  { href: "/inventory", icon: Package, label: "Inventory" },
-  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/items", icon: Package, label: "Items" },
+  { href: "/search", icon: Search, label: "Search" },
+  { href: "/notifications", icon: Bell, label: "Alerts" },
+  { href: "/menu", icon: Menu, label: "Menu" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -22,52 +23,39 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
+  // Pages that show their own header (Shortly-style big title pages)
+  const noHeaderPages = ["/", "/items", "/search", "/notifications", "/menu", "/scan", "/library", "/settings", "/staff-report", "/activity"];
+  const showHeader = !noHeaderPages.some(p => p === location || (p !== "/" && location.startsWith(p)));
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Top bar — minimal, sleek */}
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
-        <div className="flex h-12 items-center justify-between px-4 max-w-lg mx-auto">
-          <div className="flex items-center gap-2.5">
-            <div style={{ filter: "drop-shadow(0 2px 6px hsl(170 72% 38% / 0.35))" }}>
-              <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-label="88 Smile Designs">
-                <rect width="32" height="32" rx="8" fill="hsl(170, 72%, 38%)" />
-                <text x="16" y="22" textAnchor="middle" fill="white" fontSize="16" fontWeight="700" fontFamily="system-ui">88</text>
-              </svg>
+      {/* Top bar — only for detail pages that need it */}
+      {showHeader && (
+        <header className="sticky top-0 z-40 border-b border-border/50 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+          <div className="flex h-12 items-center justify-between px-4 max-w-lg mx-auto">
+            <div className="flex items-center gap-2">
+              <LogoIcon size={28} />
+              <div className="leading-none">
+                <span className="text-sm font-semibold tracking-tight" data-testid="app-title">88 Smile Designs</span>
+              </div>
             </div>
-            <div className="leading-none">
-              <span className="text-sm font-semibold tracking-tight" data-testid="app-title">88 Smile Designs</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {staffName && (
+            <div className="flex items-center gap-1.5">
               <button
-                onClick={logout}
-                className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-muted/60 hover:bg-muted transition-colors"
-                data-testid="button-staff-session"
-                title={`Signed in as ${staffName} — tap to switch`}
+                onClick={() => setIsDark(!isDark)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+                aria-label="Toggle theme"
+                data-testid="button-theme-toggle"
               >
-                <div className="w-4.5 h-4.5 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="text-[9px] font-bold text-primary">{staffName.charAt(0)}</span>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground max-w-[60px] truncate">{staffName}</span>
-                <LogOut className="w-3 h-3 text-muted-foreground/60" />
+                {isDark ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                )}
               </button>
-            )}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
-              aria-label="Toggle theme"
-              data-testid="button-theme-toggle"
-            >
-              {isDark ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              )}
-            </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-20">
@@ -76,56 +64,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      {/* Bottom navigation — sleek pill style */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-t border-border/50 pb-safe">
-        <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-2">
+      {/* Bottom navigation — Shortly style */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-card border-t border-border/50 pb-safe">
+        <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
           {navItems.map((item) => {
-            const isActive = location === item.href ||
-              (item.href !== "/" && location.startsWith(item.href));
+            const isActive = item.href === "/"
+              ? location === "/"
+              : location.startsWith(item.href);
             const Icon = item.icon;
-            const isScan = item.label === "Scan";
-
-            if (isScan) {
-              return (
-                <Link key={item.href} href={item.href}>
-                  <button
-                    data-testid="nav-scan"
-                    className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 min-w-[52px] -mt-4"
-                    style={{
-                      filter: isActive
-                        ? "drop-shadow(0 0 10px hsl(170 72% 38% / 0.55))"
-                        : "drop-shadow(0 0 6px hsl(170 72% 38% / 0.30))",
-                    }}
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-lg"
-                          : "bg-primary/15 text-primary"
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" strokeWidth={isActive ? 2.2 : 1.8} />
-                    </div>
-                    <span className={`text-[10px] leading-tight mt-0.5 ${
-                      isActive ? "font-semibold text-primary" : "font-medium text-muted-foreground"
-                    }`}>{item.label}</span>
-                  </button>
-                </Link>
-              );
-            }
 
             return (
               <Link key={item.href} href={item.href}>
                 <button
                   data-testid={`nav-${item.label.toLowerCase()}`}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 min-w-[52px] ${
+                  className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-w-[56px] ${
                     isActive
-                      ? "text-foreground"
+                      ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2.2 : 1.8} />
-                  <span className={`text-[10px] leading-tight ${isActive ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                  <Icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.6} />
+                  <span className={`text-[10px] leading-tight ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
                 </button>
               </Link>
             );

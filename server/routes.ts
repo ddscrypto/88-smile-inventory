@@ -70,6 +70,35 @@ export async function registerRoutes(
     res.json({ ok: true });
   });
 
+  // --- Staff PIN ---
+  app.post("/api/staff/:id/set-pin", (req, res) => {
+    const id = Number(req.params.id);
+    const { pin } = req.body;
+    if (!pin || typeof pin !== "string" || pin.length < 4) {
+      return res.status(400).json({ error: "Password must be at least 4 characters" });
+    }
+    const ok = storage.setStaffPin(id, pin);
+    if (!ok) return res.status(404).json({ error: "Staff not found" });
+    res.json({ ok: true });
+  });
+
+  app.post("/api/staff/:id/verify-pin", (req, res) => {
+    const id = Number(req.params.id);
+    const { pin } = req.body;
+    if (!pin || typeof pin !== "string") {
+      return res.status(400).json({ error: "Password required" });
+    }
+    const valid = storage.verifyStaffPin(id, pin);
+    res.json({ valid });
+  });
+
+  app.post("/api/staff/:id/reset-pin", (req, res) => {
+    const id = Number(req.params.id);
+    const ok = storage.resetStaffPin(id);
+    if (!ok) return res.status(404).json({ error: "Staff not found" });
+    res.json({ ok: true });
+  });
+
   // --- Implants ---
   app.get("/api/implants", (req, res) => {
     const q = req.query.q as string | undefined;

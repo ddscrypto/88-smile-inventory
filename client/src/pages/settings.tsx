@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X, Bell } from "lucide-react";
+import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X, Bell, KeyRound } from "lucide-react";
 import type { Staff } from "@shared/schema";
 
 export default function SettingsPage() {
@@ -205,6 +205,7 @@ export default function SettingsPage() {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
+                      <ResetPinButton staffId={s.id} staffName={s.name} />
                       <Button
                         variant="ghost"
                         size="icon"
@@ -255,6 +256,37 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ResetPinButton({ staffId, staffName }: { staffId: number; staffName: string }) {
+  const { toast } = useToast();
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/staff/${staffId}/reset-pin`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+      toast({ title: `Password reset for ${staffName}` });
+    },
+  });
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 text-amber-500 hover:text-amber-600 rounded-lg hover:bg-amber-500/10"
+      onClick={() => {
+        if (confirm(`Reset password for ${staffName}? They will need to create a new one on next login.`)) {
+          resetMutation.mutate();
+        }
+      }}
+      disabled={resetMutation.isPending}
+      data-testid={`button-reset-pin-${staffId}`}
+      title="Reset password"
+    >
+      <KeyRound className="w-3.5 h-3.5" />
+    </Button>
   );
 }
 

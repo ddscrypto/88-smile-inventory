@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Lock } from "lucide-react";
+import { LogoWide } from "@/components/logo";
 
 const CORRECT_PIN = "8888";
 const UNLOCK_KEY = "88smile_unlocked";
@@ -69,13 +70,11 @@ export default function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   return (
     <div className="fixed inset-0 bg-background flex flex-col items-center justify-center px-6 z-50">
       {/* Logo */}
-      <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-6">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <text x="3" y="24" fontFamily="system-ui" fontWeight="800" fontSize="22" fill="white">88</text>
-        </svg>
+      <div className="mb-4">
+        <LogoWide height={52} />
       </div>
 
-      <h1 className="text-xl font-bold tracking-tight mb-1">88 Smile Designs</h1>
+      <h1 className="text-lg font-bold tracking-tight mb-1">Implant Inventory</h1>
       <p className="text-sm text-muted-foreground mb-8">Enter PIN to continue</p>
 
       {/* PIN Input */}

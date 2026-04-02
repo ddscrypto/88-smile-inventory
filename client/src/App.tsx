@@ -7,12 +7,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Scanner from "@/pages/scanner";
-import Inventory from "@/pages/inventory";
+import ItemsPage from "@/pages/items";
 import ImplantDetail from "@/pages/implant-detail";
 import ActivityPage from "@/pages/activity";
 import StaffReportPage from "@/pages/staff-report";
 import SettingsPage from "@/pages/settings";
 import LibraryPage from "@/pages/library";
+import SearchPage from "@/pages/search-page";
+import NotificationsPage from "@/pages/notifications";
+import MenuPage from "@/pages/menu-page";
 import AppLayout from "@/components/app-layout";
 import LockScreen, { useLockScreen } from "@/pages/lock-screen";
 import StaffLogin from "@/pages/staff-login";
@@ -24,7 +27,11 @@ function AppRouter() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/scan" component={Scanner} />
-        <Route path="/inventory" component={Inventory} />
+        <Route path="/items" component={ItemsPage} />
+        <Route path="/inventory" component={ItemsPage} />
+        <Route path="/search" component={SearchPage} />
+        <Route path="/notifications" component={NotificationsPage} />
+        <Route path="/menu" component={MenuPage} />
         <Route path="/implant/:id" component={ImplantDetail} />
         <Route path="/activity" component={ActivityPage} />
         <Route path="/staff-report" component={StaffReportPage} />

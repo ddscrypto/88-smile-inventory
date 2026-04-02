@@ -7,6 +7,7 @@ export const staffMembers = sqliteTable("staff_members", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   role: text("role").notNull().default("assistant"), // dentist, assistant, hygienist, admin
+  pin: text("pin").notNull().default(""), // hashed password for staff login
 });
 
 export const insertStaffSchema = createInsertSchema(staffMembers).omit({ id: true });

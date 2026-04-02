@@ -8,6 +8,11 @@ import {
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import { eq, desc, like, or, sql } from "drizzle-orm";
+import { createHash } from "crypto";
+
+function hashPin(pin: string): string {
+  return createHash("sha256").update(pin).digest("hex");
+}
 
 const sqlite = new Database("data.db");
 sqlite.pragma("journal_mode = WAL");
@@ -40,6 +45,11 @@ export interface IStorage {
   getActivities(limit?: number): Activity[];
   getActivitiesByImplant(implantId: number): Activity[];
   createActivity(activity: InsertActivity): Activity;
+
+  // Staff PIN
+  setStaffPin(id: number, pin: string): boolean;
+  verifyStaffPin(id: number, pin: string): boolean;
+  resetStaffPin(id: number): boolean;
 
   // Settings
   getSetting(key: string): string | undefined;
@@ -108,6 +118,11 @@ export class DatabaseStorage implements IStorage {
     // Add catalog_id column if missing (migration for existing DBs)
     try {
       sqlite.exec(`ALTER TABLE implants ADD COLUMN catalog_id INTEGER`);
+    } catch {}
+
+    // Add pin column to staff_members if missing (migration for staff passwords)
+    try {
+      sqlite.exec(`ALTER TABLE staff_members ADD COLUMN pin TEXT NOT NULL DEFAULT ''`);
     } catch {}
 
     // Seed staff
@@ -221,7 +236,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Staff
-  getStaff(): Staff[] { return db.select().from(staffMembers).all(); }
+  getStaff(): (Staff & { hasPin: boolean })[] {
+    return db.select().from(staffMembers).all().map(s => ({
+      ...s,
+      pin: "", // never expose pin hash to client
+      hasPin: s.pin !== "",
+    }));
+  }
   getStaffById(id: number): Staff | undefined { return db.select().from(staffMembers).where(eq(staffMembers.id, id)).get(); }
   createStaff(staff: InsertStaff): Staff { return db.insert(staffMembers).values(staff).returning().get(); }
   deleteStaff(id: number): void { db.delete(staffMembers).where(eq(staffMembers.id, id)).run(); }
@@ -265,6 +286,29 @@ export class DatabaseStorage implements IStorage {
   getActivities(limit = 50): Activity[] { return db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(limit).all(); }
   getActivitiesByImplant(implantId: number): Activity[] { return db.select().from(activityLog).where(eq(activityLog.implantId, implantId)).orderBy(desc(activityLog.id)).all(); }
   createActivity(activity: InsertActivity): Activity { return db.insert(activityLog).values(activity).returning().get(); }
+
+  // Staff PIN
+  setStaffPin(id: number, pin: string): boolean {
+    const staff = this.getStaffById(id);
+    if (!staff) return false;
+    const hashed = hashPin(pin);
+    db.update(staffMembers).set({ pin: hashed }).where(eq(staffMembers.id, id)).run();
+    return true;
+  }
+
+  verifyStaffPin(id: number, pin: string): boolean {
+    const staff = this.getStaffById(id);
+    if (!staff) return false;
+    if (staff.pin === "") return false; // no pin set
+    return staff.pin === hashPin(pin);
+  }
+
+  resetStaffPin(id: number): boolean {
+    const staff = this.getStaffById(id);
+    if (!staff) return false;
+    db.update(staffMembers).set({ pin: "" }).where(eq(staffMembers.id, id)).run();
+    return true;
+  }
 
   // Settings
   getSetting(key: string): string | undefined {
