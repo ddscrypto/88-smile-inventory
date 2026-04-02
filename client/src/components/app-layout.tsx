@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Package, Search, Bell, Menu, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ScanLine, Bell, Menu, LogOut } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useSession } from "@/lib/session-context";
 import { LogoIcon } from "@/components/logo";
@@ -7,7 +7,7 @@ import { LogoIcon } from "@/components/logo";
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/items", icon: Package, label: "Items" },
-  { href: "/search", icon: Search, label: "Search" },
+  { href: "/scan", icon: ScanLine, label: "Scan" },
   { href: "/notifications", icon: Bell, label: "Alerts" },
   { href: "/menu", icon: Menu, label: "Menu" },
 ];

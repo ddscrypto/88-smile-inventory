@@ -120,101 +120,140 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
     const avatarColor = avatarBg[selectedStaff.role] || avatarBg.assistant;
 
     return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center px-6 z-50">
+      <div className="fixed inset-0 bg-background flex flex-col px-6 z-50 overflow-y-auto">
+        {/* Back button */}
         <button
           onClick={handleBack}
-          className="absolute top-5 left-4 flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors pt-5 pb-3 self-start"
           data-testid="button-back-to-staff"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-[13px]">Back</span>
         </button>
 
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mb-4 ${avatarColor}`}>
-          {selectedStaff.name.charAt(0)}
-        </div>
-        <h2 className="text-lg font-bold tracking-tight mb-0.5">{selectedStaff.name}</h2>
-        <p className="text-[11px] text-muted-foreground capitalize mb-6">{selectedStaff.role}</p>
-
-        {isSettingPin ? (
-          // ─── First-time: create password ───
-          <div className="w-full max-w-xs space-y-3">
-            <p className="text-[13px] text-center text-muted-foreground mb-2">Create your password to get started</p>
-            <div className="relative">
-              <Input
-                data-testid="input-new-pin"
-                type={showPin ? "text" : "password"}
-                value={newPin}
-                onChange={(e) => { setNewPin(e.target.value); setError(""); }}
-                placeholder="New password"
-                className="h-11 rounded-xl text-[14px] bg-muted/40 border-0 focus-visible:ring-1 pr-10"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => setShowPin(!showPin)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            <Input
-              data-testid="input-confirm-pin"
-              type={showPin ? "text" : "password"}
-              value={confirmPin}
-              onChange={(e) => { setConfirmPin(e.target.value); setError(""); }}
-              placeholder="Confirm password"
-              className="h-11 rounded-xl text-[14px] bg-muted/40 border-0 focus-visible:ring-1"
-              onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
-            />
-            {error && <p className="text-[12px] text-red-400 text-center" data-testid="text-pin-error">{error}</p>}
-            <Button
-              onClick={handleSetPin}
-              disabled={!newPin || !confirmPin || setPinMutation.isPending}
-              className="w-full h-11 rounded-xl text-[14px] font-semibold"
-              data-testid="button-create-pin"
-            >
-              {setPinMutation.isPending ? "Saving..." : "Create Password & Sign In"}
-            </Button>
+        <div className="flex-1 flex flex-col items-center justify-center pb-10">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mb-4 ${avatarColor}`}>
+            {selectedStaff.name.charAt(0)}
           </div>
-        ) : (
-          // ─── Returning: enter password ───
-          <div className="w-full max-w-xs space-y-3">
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                data-testid="input-staff-pin"
-                type={showPin ? "text" : "password"}
-                value={pin}
-                onChange={(e) => { setPin(e.target.value); setError(""); }}
-                placeholder="Enter your password"
-                className="h-11 rounded-xl text-[14px] bg-muted/40 border-0 focus-visible:ring-1 pl-9 pr-10"
-                autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleVerify()}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPin(!showPin)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {error && <p className="text-[12px] text-red-400 text-center" data-testid="text-pin-error">{error}</p>}
-            <Button
-              onClick={handleVerify}
-              disabled={!pin.trim() || verifyMutation.isPending}
-              className="w-full h-11 rounded-xl text-[14px] font-semibold"
-              data-testid="button-verify-pin"
-            >
-              {verifyMutation.isPending ? "Checking..." : "Sign In"}
-            </Button>
-          </div>
-        )}
+          <h2 className="text-lg font-bold tracking-tight mb-0.5">{selectedStaff.name}</h2>
+          <p className="text-[11px] text-muted-foreground capitalize mb-8">{selectedStaff.role}</p>
 
-        <div className="flex items-center gap-2 text-muted-foreground mt-6">
-          <Lock className="w-3 h-3" />
-          <span className="text-[10px]">Your actions will be tracked during this session</span>
+          {isSettingPin ? (
+            // ─── First-time: create password ───
+            <div className="w-full max-w-xs">
+              <p className="text-[14px] text-center font-medium text-foreground mb-1">Create a password</p>
+              <p className="text-[12px] text-center text-muted-foreground mb-5">You'll use this to sign in next time</p>
+
+              <div className="space-y-3">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    data-testid="input-new-pin"
+                    type={showPin ? "text" : "password"}
+                    value={newPin}
+                    onChange={(e) => { setNewPin(e.target.value); setError(""); }}
+                    placeholder="Enter password"
+                    className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
+                    autoFocus
+                    autoComplete="new-password"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newPin.length >= 4) {
+                        // Focus confirm field
+                        const next = document.querySelector<HTMLInputElement>('[data-testid="input-confirm-pin"]');
+                        next?.focus();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground p-1"
+                    tabIndex={-1}
+                  >
+                    {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    data-testid="input-confirm-pin"
+                    type={showPin ? "text" : "password"}
+                    value={confirmPin}
+                    onChange={(e) => { setConfirmPin(e.target.value); setError(""); }}
+                    placeholder="Confirm password"
+                    className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10"
+                    autoComplete="new-password"
+                    onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
+                  />
+                </div>
+
+                {newPin.length > 0 && newPin.length < 4 && (
+                  <p className="text-[11px] text-muted-foreground text-center">At least 4 characters</p>
+                )}
+                {newPin.length >= 4 && confirmPin.length > 0 && newPin !== confirmPin && (
+                  <p className="text-[11px] text-amber-500 text-center">Passwords don't match yet</p>
+                )}
+                {newPin.length >= 4 && confirmPin.length > 0 && newPin === confirmPin && (
+                  <p className="text-[11px] text-emerald-500 text-center">Passwords match</p>
+                )}
+                {error && <p className="text-[12px] text-red-500 text-center font-medium" data-testid="text-pin-error">{error}</p>}
+
+                <Button
+                  onClick={handleSetPin}
+                  disabled={!newPin || newPin.length < 4 || newPin !== confirmPin || setPinMutation.isPending}
+                  className="w-full h-12 rounded-xl text-[15px] font-semibold mt-1"
+                  data-testid="button-create-pin"
+                >
+                  {setPinMutation.isPending ? "Saving..." : "Create Password & Sign In"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // ─── Returning: enter password ───
+            <div className="w-full max-w-xs">
+              <p className="text-[14px] text-center font-medium text-foreground mb-5">Enter your password</p>
+
+              <div className="space-y-3">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    data-testid="input-staff-pin"
+                    type={showPin ? "text" : "password"}
+                    value={pin}
+                    onChange={(e) => { setPin(e.target.value); setError(""); }}
+                    placeholder="Password"
+                    className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
+                    autoFocus
+                    autoComplete="current-password"
+                    onKeyDown={(e) => e.key === "Enter" && handleVerify()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground p-1"
+                    tabIndex={-1}
+                  >
+                    {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {error && <p className="text-[12px] text-red-500 text-center font-medium" data-testid="text-pin-error">{error}</p>}
+                <Button
+                  onClick={handleVerify}
+                  disabled={!pin.trim() || verifyMutation.isPending}
+                  className="w-full h-12 rounded-xl text-[15px] font-semibold"
+                  data-testid="button-verify-pin"
+                >
+                  {verifyMutation.isPending ? "Checking..." : "Sign In"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-muted-foreground mt-8">
+            <Lock className="w-3 h-3" />
+            <span className="text-[10px]">Your actions will be tracked during this session</span>
+          </div>
         </div>
       </div>
     );

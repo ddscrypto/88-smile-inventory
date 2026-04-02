@@ -15,6 +15,7 @@ export default function MenuPage() {
     {
       items: [
         { icon: BarChart3, label: "Dashboard", href: "/", desc: "Overview & KPIs" },
+        { icon: Search, label: "Search", href: "/search", desc: "Find items & catalog" },
         { icon: ClipboardList, label: "Staff Report", href: "/staff-report", desc: "Activity by person" },
         { icon: BookOpen, label: "Library", href: "/library", desc: "Neodent catalog" },
       ],
