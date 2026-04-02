@@ -11,6 +11,7 @@ import Inventory from "@/pages/inventory";
 import ImplantDetail from "@/pages/implant-detail";
 import ActivityPage from "@/pages/activity";
 import SettingsPage from "@/pages/settings";
+import LibraryPage from "@/pages/library";
 import AppLayout from "@/components/app-layout";
 
 function AppRouter() {
@@ -23,6 +24,7 @@ function AppRouter() {
         <Route path="/implant/:id" component={ImplantDetail} />
         <Route path="/activity" component={ActivityPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/library" component={LibraryPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

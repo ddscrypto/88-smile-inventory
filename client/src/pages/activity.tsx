@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDownLeft, ArrowUpRight, Package, XCircle, Clock, Pencil } from "lucide-react";
 import type { Activity } from "@shared/schema";
@@ -9,14 +8,14 @@ export default function ActivityPage() {
     queryKey: ["/api/activities"],
   });
 
-  const getIcon = (action: string) => {
+  const getIconData = (action: string) => {
     switch (action) {
-      case "checked_out": return <ArrowUpRight className="w-3.5 h-3.5 text-amber-600" />;
-      case "checked_in": return <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />;
-      case "added": return <Package className="w-3.5 h-3.5 text-primary" />;
-      case "deleted": return <XCircle className="w-3.5 h-3.5 text-red-500" />;
-      case "updated": return <Pencil className="w-3.5 h-3.5 text-blue-500" />;
-      default: return <Clock className="w-3.5 h-3.5 text-muted-foreground" />;
+      case "checked_out": return { icon: ArrowUpRight, color: "text-amber-500", bg: "bg-amber-500/10" };
+      case "checked_in": return { icon: ArrowDownLeft, color: "text-emerald-500", bg: "bg-emerald-500/10" };
+      case "added": return { icon: Package, color: "text-primary", bg: "bg-primary/10" };
+      case "deleted": return { icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" };
+      case "updated": return { icon: Pencil, color: "text-blue-400", bg: "bg-blue-500/10" };
+      default: return { icon: Clock, color: "text-muted-foreground", bg: "bg-muted" };
     }
   };
 
@@ -28,16 +27,6 @@ export default function ActivityPage() {
       case "deleted": return "Removed";
       case "updated": return "Updated";
       default: return action;
-    }
-  };
-
-  const getBgClass = (action: string) => {
-    switch (action) {
-      case "checked_out": return "bg-amber-50 dark:bg-amber-950/20";
-      case "checked_in": return "bg-emerald-50 dark:bg-emerald-950/20";
-      case "added": return "bg-primary/5";
-      case "deleted": return "bg-red-50 dark:bg-red-950/20";
-      default: return "bg-muted/50";
     }
   };
 
@@ -53,55 +42,61 @@ export default function ActivityPage() {
     grouped[date].push(act);
   });
 
+  const timeString = (ts: string) =>
+    new Date(ts).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
   return (
-    <div className="p-4 space-y-4">
+    <div className="px-4 pt-5 pb-4 space-y-6">
+      {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold" data-testid="text-activity-title">Activity Log</h2>
-        <p className="text-sm text-muted-foreground">Complete history of inventory changes</p>
+        <h2 className="text-xl font-bold tracking-tight" data-testid="text-activity-title">Activity</h2>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Complete history of changes</p>
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
-          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+          {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
         </div>
       ) : activities.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Clock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">No activity recorded yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Scan a QR code to get started</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-dashed border-border/60 p-10 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+            <Clock className="w-5 h-5 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Scan a QR code to get started</p>
+        </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {Object.entries(grouped).map(([date, acts]) => (
             <div key={date}>
-              <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">{date}</h3>
-              <div className="space-y-1.5">
-                {acts.map(act => (
-                  <div
-                    key={act.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${getBgClass(act.action)}`}
-                    data-testid={`activity-item-${act.id}`}
-                  >
-                    <div className="w-7 h-7 rounded-full bg-background flex items-center justify-center shrink-0">
-                      {getIcon(act.action)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium">{getLabel(act.action)}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        by {act.staffName}
-                        {act.notes ? ` — ${act.notes}` : ""}
+              <h3 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-2.5">{date}</h3>
+              <div className="space-y-1">
+                {acts.map(act => {
+                  const { icon: Icon, color, bg } = getIconData(act.action);
+                  return (
+                    <div
+                      key={act.id}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-colors"
+                      data-testid={`activity-item-${act.id}`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                        <Icon className={`w-4 h-4 ${color}`} />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium">{getLabel(act.action)}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {act.staffName}{act.notes ? ` · ${act.notes}` : ""}
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground/60 font-medium tabular-nums shrink-0">
+                        {timeString(act.timestamp)}
+                      </span>
                     </div>
-                    <div className="text-xs text-muted-foreground shrink-0">
-                      {new Date(act.timestamp).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

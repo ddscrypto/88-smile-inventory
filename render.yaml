@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: 88-smile-inventory
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: NODE_ENV=production node dist/index.cjs
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production

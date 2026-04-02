@@ -2,6 +2,7 @@ import {
   type Staff, type InsertStaff, staffMembers,
   type Implant, type InsertImplant, implants,
   type Activity, type InsertActivity, activityLog,
+  type CatalogItem, type InsertCatalog, catalogItems,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
@@ -18,6 +19,12 @@ export interface IStorage {
   getStaffById(id: number): Staff | undefined;
   createStaff(staff: InsertStaff): Staff;
   deleteStaff(id: number): void;
+  updateStaff(id: number, data: Partial<InsertStaff>): Staff | undefined;
+
+  // Catalog
+  getCatalog(): CatalogItem[];
+  getCatalogByLine(line: string): CatalogItem[];
+  searchCatalog(query: string): CatalogItem[];
 
   // Implants
   getImplants(): Implant[];
@@ -36,16 +43,28 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   constructor() {
-    // Create tables if they don't exist
     sqlite.exec(`
       CREATE TABLE IF NOT EXISTS staff_members (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'assistant'
       );
+      CREATE TABLE IF NOT EXISTS catalog_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        brand TEXT NOT NULL,
+        line TEXT NOT NULL,
+        body TEXT NOT NULL,
+        surface TEXT NOT NULL,
+        diameter TEXT NOT NULL,
+        length TEXT NOT NULL,
+        ref_number TEXT NOT NULL,
+        connection TEXT NOT NULL DEFAULT 'Grand Morse',
+        platform TEXT NOT NULL DEFAULT ''
+      );
       CREATE TABLE IF NOT EXISTS implants (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         qr_data TEXT NOT NULL,
+        catalog_id INTEGER,
         brand TEXT NOT NULL DEFAULT '',
         product_name TEXT NOT NULL DEFAULT '',
         lot_number TEXT NOT NULL DEFAULT '',
@@ -73,87 +92,166 @@ export class DatabaseStorage implements IStorage {
       );
     `);
 
-    // Seed default staff if empty
-    const count = sqlite.prepare("SELECT COUNT(*) as c FROM staff_members").get() as any;
-    if (count.c === 0) {
+    // Add catalog_id column if missing (migration for existing DBs)
+    try {
+      sqlite.exec(`ALTER TABLE implants ADD COLUMN catalog_id INTEGER`);
+    } catch {}
+
+    // Seed staff
+    const staffCount = (sqlite.prepare("SELECT COUNT(*) as c FROM staff_members").get() as any).c;
+    if (staffCount === 0) {
       sqlite.exec(`
         INSERT INTO staff_members (name, role) VALUES ('Dr. Destine', 'dentist');
-        INSERT INTO staff_members (name, role) VALUES ('Front Desk', 'admin');
+        INSERT INTO staff_members (name, role) VALUES ('Aline', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Noemy', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Myrella', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Sasha', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Damaris', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Hanny', 'assistant');
+        INSERT INTO staff_members (name, role) VALUES ('Amanda', 'assistant');
       `);
+    }
+
+    // Seed catalog
+    const catCount = (sqlite.prepare("SELECT COUNT(*) as c FROM catalog_items").get() as any).c;
+    if (catCount === 0) {
+      this.seedCatalog();
     }
   }
 
+  private seedCatalog() {
+    const insert = sqlite.prepare(
+      `INSERT INTO catalog_items (brand, line, body, surface, diameter, length, ref_number, connection, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+
+    const batch = sqlite.transaction((items: any[]) => {
+      for (const i of items) {
+        insert.run(i.brand, i.line, i.body, i.surface, i.diameter, i.length, i.ref, i.connection, i.platform);
+      }
+    });
+
+    const items: any[] = [];
+    const nd = "Neodent";
+
+    // =============================================
+    // HELIX GM — Acqua surface
+    // =============================================
+    const helixGmDiameters = [
+      { d: "3.5", refs: { "8.0": "140.943", "10.0": "140.944", "11.5": "140.945", "13.0": "140.946", "16.0": "140.947", "18.0": "140.988" } },
+      { d: "3.75", refs: { "8.0": "140.953", "10.0": "140.954", "11.5": "140.955", "13.0": "140.956", "16.0": "140.957", "18.0": "140.990" } },
+      { d: "4.0", refs: { "8.0": "140.976", "10.0": "140.977", "11.5": "140.978", "13.0": "140.979", "16.0": "140.980", "18.0": "140.981" } },
+      { d: "4.3", refs: { "8.0": "140.982", "10.0": "140.983", "11.5": "140.984", "13.0": "140.985", "16.0": "140.986", "18.0": "140.987" } },
+      { d: "5.0", refs: { "8.0": "140.948", "10.0": "140.949", "11.5": "140.950", "13.0": "140.951", "16.0": "140.952", "18.0": "140.989" } },
+      { d: "6.0", refs: { "8.0": "140.1009", "10.0": "140.1010", "11.5": "140.1011", "13.0": "140.1012" } },
+      { d: "7.0", refs: { "8.0": "140.1059", "10.0": "140.1060", "11.5": "140.1061", "13.0": "140.1062" } },
+    ];
+    for (const diam of helixGmDiameters) {
+      for (const [len, ref] of Object.entries(diam.refs)) {
+        items.push({ brand: nd, line: "Grand Morse", body: "Helix", surface: "Acqua", diameter: diam.d, length: len, ref, connection: "Grand Morse", platform: "GM" });
+      }
+    }
+
+    // =============================================
+    // DRIVE GM — Acqua surface
+    // =============================================
+    const driveGmDiameters = [
+      { d: "3.5", refs: { "8.0": "140.958", "10.0": "140.959", "11.5": "140.960", "13.0": "140.961", "16.0": "140.962", "18.0": "140.963" } },
+      { d: "4.3", refs: { "8.0": "140.964", "10.0": "140.965", "11.5": "140.966", "13.0": "140.967", "16.0": "140.968", "18.0": "140.969" } },
+      { d: "5.0", refs: { "8.0": "140.970", "10.0": "140.971", "11.5": "140.972", "13.0": "140.973", "16.0": "140.974", "18.0": "140.975" } },
+    ];
+    for (const diam of driveGmDiameters) {
+      for (const [len, ref] of Object.entries(diam.refs)) {
+        items.push({ brand: nd, line: "Grand Morse", body: "Drive", surface: "Acqua", diameter: diam.d, length: len, ref, connection: "Grand Morse", platform: "GM" });
+      }
+    }
+
+    // =============================================
+    // TITAMAX GM — Acqua surface
+    // =============================================
+    const titamaxGmDiameters = [
+      { d: "3.5", refs: { "7.0": "140.906", "8.0": "140.907", "9.0": "140.908", "11.0": "140.909", "13.0": "140.910", "15.0": "140.911", "17.0": "140.912" } },
+      { d: "3.75", refs: { "7.0": "140.899", "8.0": "140.900", "9.0": "140.901", "11.0": "140.902", "13.0": "140.903", "15.0": "140.904", "17.0": "140.905" } },
+      { d: "4.0", refs: { "7.0": "140.913", "8.0": "140.914", "9.0": "140.915", "11.0": "140.916", "13.0": "140.917", "15.0": "140.918", "17.0": "140.919" } },
+      { d: "5.0", refs: { "7.0": "140.920", "8.0": "140.921", "9.0": "140.922", "11.0": "140.923", "13.0": "140.924" } },
+    ];
+    for (const diam of titamaxGmDiameters) {
+      for (const [len, ref] of Object.entries(diam.refs)) {
+        items.push({ brand: nd, line: "Grand Morse", body: "Titamax", surface: "Acqua", diameter: diam.d, length: len, ref, connection: "Grand Morse", platform: "GM" });
+      }
+    }
+
+    // =============================================
+    // HELIX GM NARROW — Acqua (Ø2.9 only)
+    // =============================================
+    const narrowRefs: Record<string, string> = { "10.0": "140.1063", "12.0": "140.1064", "14.0": "140.1065" };
+    for (const [len, ref] of Object.entries(narrowRefs)) {
+      items.push({ brand: nd, line: "GM Narrow", body: "Helix", surface: "Acqua", diameter: "2.9", length: len, ref, connection: "Grand Morse", platform: "GM Narrow" });
+    }
+
+    // =============================================
+    // HELIX SHORT — Acqua surface
+    // =============================================
+    const helixShortDiameters = [
+      { d: "3.75", refs: { "4.0": "140.1066", "5.5": "140.1067", "7.0": "140.1068", "8.5": "140.1069" } },
+      { d: "4.0", refs: { "4.0": "140.1082", "5.5": "140.1083", "7.0": "140.1084", "8.5": "140.1085" } },
+      { d: "5.0", refs: { "4.0": "140.1070", "5.5": "140.1071", "7.0": "140.1072", "8.5": "140.1073" } },
+      { d: "6.0", refs: { "4.0": "140.1074", "5.5": "140.1075", "7.0": "140.1076", "8.5": "140.1077" } },
+      { d: "7.0", refs: { "4.0": "140.1078", "5.5": "140.1079", "7.0": "140.1080", "8.5": "140.1081" } },
+    ];
+    for (const diam of helixShortDiameters) {
+      for (const [len, ref] of Object.entries(diam.refs)) {
+        items.push({ brand: nd, line: "Helix Short", body: "Helix Short", surface: "Acqua", diameter: diam.d, length: len, ref, connection: "Helix Short", platform: "HS" });
+      }
+    }
+
+    batch(items);
+  }
+
   // Staff
-  getStaff(): Staff[] {
-    return db.select().from(staffMembers).all();
+  getStaff(): Staff[] { return db.select().from(staffMembers).all(); }
+  getStaffById(id: number): Staff | undefined { return db.select().from(staffMembers).where(eq(staffMembers.id, id)).get(); }
+  createStaff(staff: InsertStaff): Staff { return db.insert(staffMembers).values(staff).returning().get(); }
+  deleteStaff(id: number): void { db.delete(staffMembers).where(eq(staffMembers.id, id)).run(); }
+  updateStaff(id: number, data: Partial<InsertStaff>): Staff | undefined {
+    const existing = this.getStaffById(id);
+    if (!existing) return undefined;
+    db.update(staffMembers).set(data).where(eq(staffMembers.id, id)).run();
+    return this.getStaffById(id);
   }
 
-  getStaffById(id: number): Staff | undefined {
-    return db.select().from(staffMembers).where(eq(staffMembers.id, id)).get();
-  }
-
-  createStaff(staff: InsertStaff): Staff {
-    return db.insert(staffMembers).values(staff).returning().get();
-  }
-
-  deleteStaff(id: number): void {
-    db.delete(staffMembers).where(eq(staffMembers.id, id)).run();
-  }
-
-  // Implants
-  getImplants(): Implant[] {
-    return db.select().from(implants).all();
-  }
-
-  getImplantById(id: number): Implant | undefined {
-    return db.select().from(implants).where(eq(implants.id, id)).get();
-  }
-
-  getImplantByQr(qrData: string): Implant | undefined {
-    return db.select().from(implants).where(eq(implants.qrData, qrData)).get();
-  }
-
-  searchImplants(query: string): Implant[] {
-    const pattern = `%${query}%`;
-    return db.select().from(implants).where(
-      or(
-        like(implants.brand, pattern),
-        like(implants.productName, pattern),
-        like(implants.lotNumber, pattern),
-        like(implants.refNumber, pattern),
-        like(implants.supplier, pattern),
-        like(implants.qrData, pattern),
-      )
+  // Catalog
+  getCatalog(): CatalogItem[] { return db.select().from(catalogItems).all(); }
+  getCatalogByLine(line: string): CatalogItem[] { return db.select().from(catalogItems).where(eq(catalogItems.line, line)).all(); }
+  searchCatalog(query: string): CatalogItem[] {
+    const p = `%${query}%`;
+    return db.select().from(catalogItems).where(
+      or(like(catalogItems.body, p), like(catalogItems.line, p), like(catalogItems.refNumber, p), like(catalogItems.diameter, p), like(catalogItems.length, p))
     ).all();
   }
 
-  createImplant(implant: InsertImplant): Implant {
-    return db.insert(implants).values(implant).returning().get();
+  // Implants
+  getImplants(): Implant[] { return db.select().from(implants).all(); }
+  getImplantById(id: number): Implant | undefined { return db.select().from(implants).where(eq(implants.id, id)).get(); }
+  getImplantByQr(qrData: string): Implant | undefined { return db.select().from(implants).where(eq(implants.qrData, qrData)).get(); }
+  searchImplants(query: string): Implant[] {
+    const p = `%${query}%`;
+    return db.select().from(implants).where(
+      or(like(implants.brand, p), like(implants.productName, p), like(implants.lotNumber, p), like(implants.refNumber, p), like(implants.supplier, p), like(implants.qrData, p))
+    ).all();
   }
-
+  createImplant(implant: InsertImplant): Implant { return db.insert(implants).values(implant).returning().get(); }
   updateImplant(id: number, data: Partial<InsertImplant>): Implant | undefined {
     const existing = this.getImplantById(id);
     if (!existing) return undefined;
     db.update(implants).set(data).where(eq(implants.id, id)).run();
     return this.getImplantById(id);
   }
-
-  deleteImplant(id: number): void {
-    db.delete(implants).where(eq(implants.id, id)).run();
-  }
+  deleteImplant(id: number): void { db.delete(implants).where(eq(implants.id, id)).run(); }
 
   // Activity
-  getActivities(limit = 50): Activity[] {
-    return db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(limit).all();
-  }
-
-  getActivitiesByImplant(implantId: number): Activity[] {
-    return db.select().from(activityLog).where(eq(activityLog.implantId, implantId)).orderBy(desc(activityLog.id)).all();
-  }
-
-  createActivity(activity: InsertActivity): Activity {
-    return db.insert(activityLog).values(activity).returning().get();
-  }
+  getActivities(limit = 50): Activity[] { return db.select().from(activityLog).orderBy(desc(activityLog.id)).limit(limit).all(); }
+  getActivitiesByImplant(implantId: number): Activity[] { return db.select().from(activityLog).where(eq(activityLog.implantId, implantId)).orderBy(desc(activityLog.id)).all(); }
+  createActivity(activity: InsertActivity): Activity { return db.insert(activityLog).values(activity).returning().get(); }
 }
 
 export const storage = new DatabaseStorage();

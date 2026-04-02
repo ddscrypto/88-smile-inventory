@@ -13,10 +13,29 @@ export const insertStaffSchema = createInsertSchema(staffMembers).omit({ id: tru
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
 export type Staff = typeof staffMembers.$inferSelect;
 
+// Implant catalog — pre-loaded library of implant models
+export const catalogItems = sqliteTable("catalog_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  brand: text("brand").notNull(),           // e.g. "Neodent"
+  line: text("line").notNull(),             // e.g. "Grand Morse", "GM Narrow", "Helix Short"
+  body: text("body").notNull(),             // e.g. "Helix", "Drive", "Titamax"
+  surface: text("surface").notNull(),       // e.g. "Acqua", "NeoPoros"
+  diameter: text("diameter").notNull(),     // e.g. "3.5"
+  length: text("length").notNull(),         // e.g. "10.0"
+  refNumber: text("ref_number").notNull(),  // e.g. "140.943"
+  connection: text("connection").notNull().default("Grand Morse"),
+  platform: text("platform").notNull().default(""),
+});
+
+export const insertCatalogSchema = createInsertSchema(catalogItems).omit({ id: true });
+export type InsertCatalog = z.infer<typeof insertCatalogSchema>;
+export type CatalogItem = typeof catalogItems.$inferSelect;
+
 // Implant inventory items
 export const implants = sqliteTable("implants", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   qrData: text("qr_data").notNull(), // raw QR code content
+  catalogId: integer("catalog_id"),   // links to catalog (null for manual/custom)
   brand: text("brand").notNull().default(""),
   productName: text("product_name").notNull().default(""),
   lotNumber: text("lot_number").notNull().default(""),

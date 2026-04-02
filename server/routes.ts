@@ -9,6 +9,40 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // --- GTIN Lookup (GUDID proxy to avoid CORS) ---
+  app.get("/api/lookup-gtin/:gtin", async (req, res) => {
+    const gtin = req.params.gtin;
+    try {
+      const response = await fetch(`https://accessgudid.nlm.nih.gov/api/v3/devices/lookup.json?di=${gtin}`);
+      if (!response.ok) return res.status(404).json({ error: "GTIN not found" });
+      const data = await response.json();
+      const device = (data as any)?.gudid?.device;
+      if (!device) return res.status(404).json({ error: "Device not found" });
+
+      res.json({
+        catalogNumber: device.catalogNumber || "",
+        brandName: device.brandName || "",
+        deviceDescription: device.deviceDescription || "",
+        versionModelNumber: device.versionModelNumber || "",
+      });
+    } catch (err) {
+      res.status(500).json({ error: "GUDID lookup failed" });
+    }
+  });
+
+  // --- Catalog ---
+  app.get("/api/catalog", (req, res) => {
+    const q = req.query.q as string | undefined;
+    const line = req.query.line as string | undefined;
+    if (q && q.trim()) {
+      res.json(storage.searchCatalog(q.trim()));
+    } else if (line) {
+      res.json(storage.getCatalogByLine(line));
+    } else {
+      res.json(storage.getCatalog());
+    }
+  });
+
   // --- Staff ---
   app.get("/api/staff", (_req, res) => {
     const staff = storage.getStaff();
@@ -20,6 +54,15 @@ export async function registerRoutes(
     if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
     const staff = storage.createStaff(parsed.data);
     res.json(staff);
+  });
+
+  app.patch("/api/staff/:id", (req, res) => {
+    const id = Number(req.params.id);
+    const { name, role } = req.body;
+    const existing = storage.getStaffById(id);
+    if (!existing) return res.status(404).json({ error: "Not found" });
+    const updated = storage.updateStaff(id, { name, role });
+    res.json(updated);
   });
 
   app.delete("/api/staff/:id", (req, res) => {
