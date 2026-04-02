@@ -29,6 +29,9 @@ function parseGS1(raw: string): { gtin?: string; lot?: string; expiration?: stri
   // Remove any leading/trailing whitespace
   let data = raw.trim();
 
+  // Normalize GS separators: handle \x1D (raw), <GS> (escaped from zxing-wasm), and FNC1
+  data = data.replace(/<GS>/g, "|").replace(/\x1d/g, "|").replace(/\u001d/g, "|");
+
   // Check if it's human-readable format with parentheses
   const hasParens = data.includes("(01)");
 
@@ -37,8 +40,8 @@ function parseGS1(raw: string): { gtin?: string; lot?: string; expiration?: stri
     const gtinMatch = data.match(/\(01\)(\d{14})/);
     const expMatch = data.match(/\(17\)(\d{6})/);
     const mfgMatch = data.match(/\(11\)(\d{6})/);
-    const lotMatch = data.match(/\(10\)([^\(]+)/);
-    const snMatch = data.match(/\(21\)([^\(]+)/);
+    const lotMatch = data.match(/\(10\)([^\(|]+)/);
+    const snMatch = data.match(/\(21\)([^\(|]+)/);
 
     if (gtinMatch) result.gtin = gtinMatch[1];
     if (expMatch) result.expiration = formatGS1Date(expMatch[1]);
@@ -46,9 +49,7 @@ function parseGS1(raw: string): { gtin?: string; lot?: string; expiration?: stri
     if (lotMatch) result.lot = lotMatch[1].trim();
     if (snMatch) result.serial = snMatch[1].trim();
   } else {
-    // Raw DataMatrix: no parens, AIs concatenated, GS (0x1D) separates variable-length fields
-    // Replace GS char with pipe for splitting
-    data = data.replace(/\x1d/g, "|");
+    // Raw DataMatrix: no parens, AIs concatenated, GS separates variable-length fields
 
     // Fixed-length AIs first
     const ai01 = data.match(/01(\d{14})/);
@@ -60,7 +61,7 @@ function parseGS1(raw: string): { gtin?: string; lot?: string; expiration?: stri
     const ai11 = data.match(/11(\d{6})/);
     if (ai11) result.mfgDate = formatGS1Date(ai11[1]);
 
-    // Variable-length AIs (terminated by GS or end of string)
+    // Variable-length AIs (terminated by GS/pipe or end of string)
     const ai10 = data.match(/10([^|]+)/);
     if (ai10) result.lot = ai10[1].replace(/\d{2}\d{14}/, "").trim(); // clean up if GTIN stuck
 
@@ -82,6 +83,7 @@ export default function Scanner() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
   const scannerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -110,32 +112,35 @@ export default function Scanner() {
 
   const startScanner = useCallback(async () => {
     if (scannerRef.current) {
-      try { await scannerRef.current.stop(); } catch {}
+      try { scannerRef.current.stop(); } catch {}
       scannerRef.current = null;
     }
     setMode("scanning");
-    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const scanner = new Html5Qrcode("qr-reader");
+    // Wait for DOM to render the container
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const container = containerRef.current;
+    if (!container) {
+      toast({ title: "Camera Error", description: "Scanner container not found.", variant: "destructive" });
+      setMode("idle");
+      return;
+    }
+    const { BarcodeScanner } = await import("@/lib/barcode-scanner");
+    const scanner = new BarcodeScanner({
+      onResult: (text: string) => {
+        handleScanResult(text);
+        scanner.stop();
+        scannerRef.current = null;
+      },
+      onError: (err: string) => {
+        toast({ title: "Camera Error", description: err || "Could not access camera. Try entering the barcode text manually.", variant: "destructive" });
+        setMode("idle");
+      },
+    });
     scannerRef.current = scanner;
     try {
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX],
-        },
-        (decoded: string) => {
-          handleScanResult(decoded);
-          scanner.stop().catch(() => {});
-          scannerRef.current = null;
-        },
-        () => {}
-      );
-    } catch (err) {
-      toast({ title: "Camera Error", description: "Could not access camera. Try entering the barcode text manually.", variant: "destructive" });
+      await scanner.start(container);
+    } catch (err: any) {
+      toast({ title: "Camera Error", description: err?.message || "Could not access camera.", variant: "destructive" });
       setMode("idle");
     }
   }, []);
@@ -321,7 +326,7 @@ export default function Scanner() {
   };
 
   useEffect(() => {
-    return () => { if (scannerRef.current) scannerRef.current.stop().catch(() => {}); };
+    return () => { if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} } };
   }, []);
 
   // Catalog filtering
@@ -418,7 +423,24 @@ export default function Scanner() {
       {/* ========== SCANNING ========== */}
       {mode === "scanning" && (
         <div className="rounded-2xl overflow-hidden border border-border/60">
-          <div id="qr-reader" className="w-full" />
+          <div ref={containerRef} className="w-full aspect-[3/4] bg-black relative overflow-hidden">
+            {/* Scan overlay frame */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-[65%] aspect-square relative">
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white rounded-tl-lg" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white rounded-tr-lg" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white rounded-bl-lg" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white rounded-br-lg" />
+              </div>
+            </div>
+            {/* Scanning indicator */}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center z-10">
+              <div className="bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[11px] text-white font-medium">Scanning for barcode...</span>
+              </div>
+            </div>
+          </div>
           <div className="p-3">
             <Button variant="ghost" onClick={resetScanner} className="w-full h-10 rounded-xl text-sm" data-testid="button-cancel-scan">Cancel</Button>
           </div>
