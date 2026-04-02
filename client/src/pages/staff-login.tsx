@@ -34,7 +34,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
   const [error, setError] = useState("");
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
 
   const verifyMutation = useMutation({
     mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
@@ -78,7 +77,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
     setShowPin(false);
     setIsSettingPin(false);
     setNewPin("");
-    setConfirmPin("");
 
     // If no pin set, prompt them to create one
     if (!s.hasPin) {
@@ -92,7 +90,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
     setError("");
     setIsSettingPin(false);
     setNewPin("");
-    setConfirmPin("");
   };
 
   const handleVerify = () => {
@@ -105,10 +102,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
     if (!selectedStaff) return;
     if (newPin.length < 4) {
       setError("Password must be at least 4 characters");
-      return;
-    }
-    if (newPin !== confirmPin) {
-      setError("Passwords don't match");
       return;
     }
     setError("");
@@ -139,17 +132,20 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
           <p className="text-[11px] text-muted-foreground capitalize mb-8">{selectedStaff.role}</p>
 
           {isSettingPin ? (
-            // ─── First-time: create password ───
+            // ─── First-time: create password (single field, no confirm) ───
             <div className="w-full max-w-xs">
               <p className="text-[14px] text-center font-medium text-foreground mb-1">Create a password</p>
               <p className="text-[12px] text-center text-muted-foreground mb-5">You'll use this to sign in next time</p>
 
+              {/* form wrapper with autoComplete=off suppresses Safari keychain on ALL inputs inside */}
+              <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSetPin(); }}>
               <div className="space-y-3">
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     data-testid="input-new-pin"
                     type="text"
+                    name="app-password"
                     inputMode="text"
                     value={newPin}
                     onChange={(e) => { setNewPin(e.target.value); setError(""); }}
@@ -157,18 +153,13 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
                     style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
                     autoFocus
-                    autoComplete="off"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
                     data-lpignore="true"
                     data-1p-ignore="true"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && newPin.length >= 4) {
-                        const next = document.querySelector<HTMLInputElement>('[data-testid="input-confirm-pin"]');
-                        next?.focus();
-                      }
-                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
                   />
                   <button
                     type="button"
@@ -180,47 +171,21 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                   </button>
                 </div>
 
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    data-testid="input-confirm-pin"
-                    type="text"
-                    inputMode="text"
-                    value={confirmPin}
-                    onChange={(e) => { setConfirmPin(e.target.value); setError(""); }}
-                    placeholder="Confirm password"
-                    className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10"
-                    style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    onKeyDown={(e) => e.key === "Enter" && handleSetPin()}
-                  />
-                </div>
-
                 {newPin.length > 0 && newPin.length < 4 && (
                   <p className="text-[11px] text-muted-foreground text-center">At least 4 characters</p>
-                )}
-                {newPin.length >= 4 && confirmPin.length > 0 && newPin !== confirmPin && (
-                  <p className="text-[11px] text-amber-500 text-center">Passwords don't match yet</p>
-                )}
-                {newPin.length >= 4 && confirmPin.length > 0 && newPin === confirmPin && (
-                  <p className="text-[11px] text-emerald-500 text-center">Passwords match</p>
                 )}
                 {error && <p className="text-[12px] text-red-500 text-center font-medium" data-testid="text-pin-error">{error}</p>}
 
                 <Button
-                  onClick={handleSetPin}
-                  disabled={!newPin || newPin.length < 4 || newPin !== confirmPin || setPinMutation.isPending}
+                  type="submit"
+                  disabled={newPin.length < 4 || setPinMutation.isPending}
                   className="w-full h-12 rounded-xl text-[15px] font-semibold mt-1"
                   data-testid="button-create-pin"
                 >
-                  {setPinMutation.isPending ? "Saving..." : "Create Password & Sign In"}
+                  {setPinMutation.isPending ? "Saving..." : "Set Password & Sign In"}
                 </Button>
               </div>
+              </form>
             </div>
           ) : (
             // ─── Returning: enter password ───

@@ -243,12 +243,28 @@ export default function Dashboard() {
             {[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)}
           </div>
         ) : recentActivities.length === 0 ? (
-          <div className="rounded-2xl bg-white dark:bg-card border border-border/40 p-10 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
-              <Package className="w-5 h-5 text-muted-foreground/50" />
+          <div className="rounded-2xl bg-white dark:bg-card border border-border/40 py-12 px-6 text-center">
+            {/* Shortly-style illustrated empty state */}
+            <div className="w-24 h-24 mx-auto mb-4 relative">
+              <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                {/* Box body */}
+                <rect x="18" y="38" width="60" height="44" rx="6" fill="#e2e8f0" />
+                {/* Box flaps */}
+                <path d="M18 38 L48 52 L78 38" stroke="#cbd5e1" strokeWidth="2" fill="none" />
+                <path d="M18 38 L18 26 Q18 22 22 22 L44 22 L48 30 L52 22 L74 22 Q78 22 78 26 L78 38" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
+                {/* Center fold line */}
+                <line x1="48" y1="22" x2="48" y2="38" stroke="#cbd5e1" strokeWidth="2" />
+                {/* Magnifying glass */}
+                <circle cx="68" cy="28" r="12" fill="#bfdbfe" stroke="#93c5fd" strokeWidth="2" />
+                <circle cx="68" cy="28" r="7" fill="white" fillOpacity="0.7" />
+                <line x1="77" y1="37" x2="85" y2="46" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" />
+                {/* Small items inside box */}
+                <rect x="30" y="60" width="14" height="10" rx="2" fill="#cbd5e1" />
+                <rect x="52" y="58" width="14" height="12" rx="2" fill="#cbd5e1" />
+              </svg>
             </div>
-            <p className="text-sm font-semibold text-muted-foreground">No activity yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Scan a QR code to get started</p>
+            <p className="text-[15px] font-semibold text-foreground/70">No activity yet</p>
+            <p className="text-[12px] text-muted-foreground mt-1">Scan a barcode to get started</p>
           </div>
         ) : (
           <div className="rounded-2xl bg-white dark:bg-card border border-border/40 overflow-hidden divide-y divide-border/30">

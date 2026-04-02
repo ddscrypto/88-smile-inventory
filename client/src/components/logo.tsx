@@ -1,55 +1,63 @@
 /**
  * 88 Smile Designs logo components
- * Three overlapping circles: green (top-left), red/pink (top-right), yellow (bottom-center)
- * Matches the practice's official branding from your88smiles.com
+ * Three solid filled balls: green (top-left), red (top-right), yellow (bottom-center)
+ * Touching but separate — not overlapping like a Venn diagram
  */
 
-// Icon-only version (3 circles) — for small spaces like nav headers
+// Icon-only version — for small spaces like nav headers
 export function LogoIcon({ size = 32, className = "" }: { size?: number; className?: string }) {
+  // Three solid balls arranged in a triangle, touching but separate
+  // r=28, centers spaced so circles just touch (distance = 2*r = 56)
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      viewBox="0 0 100 96"
       fill="none"
       aria-label="88 Smile Designs"
       className={className}
     >
-      {/* Green circle — top left */}
-      <circle cx="35" cy="32" r="24" stroke="#1a9e5c" strokeWidth="5" fill="none" />
-      {/* Red/pink circle — top right */}
-      <circle cx="65" cy="32" r="24" stroke="#c72e5c" strokeWidth="5" fill="none" />
-      {/* Yellow circle — bottom center */}
-      <circle cx="50" cy="64" r="24" stroke="#f5c518" strokeWidth="5" fill="none" />
+      {/* Green ball — top left */}
+      <circle cx="28" cy="28" r="26" fill="#16a34a" />
+      {/* subtle highlight */}
+      <circle cx="20" cy="20" r="8" fill="white" fillOpacity="0.25" />
+      {/* Red ball — top right */}
+      <circle cx="72" cy="28" r="26" fill="#dc2626" />
+      <circle cx="64" cy="20" r="8" fill="white" fillOpacity="0.25" />
+      {/* Yellow ball — bottom center */}
+      <circle cx="50" cy="70" r="26" fill="#eab308" />
+      <circle cx="42" cy="62" r="8" fill="white" fillOpacity="0.25" />
     </svg>
   );
 }
 
 // Wide version with text — for lock screen and staff login
 export function LogoWide({ height = 48, className = "" }: { height?: number; className?: string }) {
-  const aspectRatio = 320 / 100;
-  const width = height * aspectRatio;
+  const width = height * 3.4;
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 320 100"
+      viewBox="0 0 204 60"
       fill="none"
       aria-label="88 Smile Designs"
       className={className}
     >
-      {/* Green circle — top left */}
-      <circle cx="30" cy="30" r="22" stroke="#1a9e5c" strokeWidth="4.5" fill="none" />
-      {/* Red/pink circle — top right */}
-      <circle cx="60" cy="30" r="22" stroke="#c72e5c" strokeWidth="4.5" fill="none" />
-      {/* Yellow circle — bottom center */}
-      <circle cx="45" cy="60" r="22" stroke="#f5c518" strokeWidth="4.5" fill="none" />
-      {/* Vertical separator line */}
-      <line x1="90" y1="8" x2="90" y2="92" stroke="#3b8fce" strokeWidth="2" />
+      {/* Green ball */}
+      <circle cx="16" cy="22" r="15" fill="#16a34a" />
+      <circle cx="11" cy="17" r="5" fill="white" fillOpacity="0.25" />
+      {/* Red ball */}
+      <circle cx="46" cy="22" r="15" fill="#dc2626" />
+      <circle cx="41" cy="17" r="5" fill="white" fillOpacity="0.25" />
+      {/* Yellow ball */}
+      <circle cx="31" cy="43" r="15" fill="#eab308" />
+      <circle cx="26" cy="38" r="5" fill="white" fillOpacity="0.25" />
+      {/* Vertical separator */}
+      <line x1="70" y1="6" x2="70" y2="54" stroke="#94a3b8" strokeWidth="1.5" />
       {/* SMILE text */}
-      <text x="100" y="44" fill="#3b8fce" fontSize="36" fontWeight="400" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="2">SMILE</text>
+      <text x="80" y="29" fill="#1e40af" fontSize="22" fontWeight="600" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="1.5">SMILE</text>
       {/* designs text */}
-      <text x="100" y="78" fill="#3b8fce" fontSize="32" fontWeight="300" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="1">designs</text>
+      <text x="80" y="50" fill="#3b82f6" fontSize="17" fontWeight="300" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="1">designs</text>
     </svg>
   );
 }
