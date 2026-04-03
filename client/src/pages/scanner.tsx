@@ -126,6 +126,9 @@ export default function Scanner() {
   const { staffName: sessionStaff } = useSession();
   const { data: staff = [] } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
   const { data: catalog = [] } = useQuery<CatalogItem[]>({ queryKey: ["/api/catalog"] });
+  // Keep a ref so async callbacks always see the latest catalog (avoids stale closure)
+  const catalogRef = useRef<CatalogItem[]>([]);
+  useEffect(() => { catalogRef.current = catalog; }, [catalog]);
   const [selectedStaff, setSelectedStaff] = useState("");
   // Auto-set staff from session
   const activeStaff = selectedStaff || sessionStaff || "Unknown";
@@ -203,24 +206,18 @@ export default function Scanner() {
   // Helper: try to match GTIN against local catalog
   // Neodent GTINs: 07899878XXXXCC where XXXXXX maps to ref number digits
   const matchGtinToCatalog = (gtin: string): CatalogItem | null => {
-    if (!gtin || catalog.length === 0) return null;
+    const cat = catalogRef.current;
+    if (!gtin || cat.length === 0) return null;
 
-    // Strategy 1: Extract digits from GTIN and try matching catalog ref numbers
-    // Neodent ref numbers look like "140.943" — the GTIN contains these digits
-    const gtinDigits = gtin.replace(/^0+/, ""); // strip leading zeros
-
-    for (const item of catalog) {
-      const refClean = item.refNumber.replace(/\./g, ""); // "140.943" → "140943"
-      // Check if the GTIN contains the ref number digits
+    const gtinDigits = gtin.replace(/^0+/, "");
+    for (const item of cat) {
+      const refClean = item.refNumber.replace(/\./g, "");
       if (gtinDigits.includes(refClean)) return item;
     }
 
-    // Strategy 2: Try the GTIN item reference portion (positions 2-13 for GTIN-14, or 1-12 for GTIN-13)
-    // Company prefix for Neodent: 7899878, item ref follows
     const itemRef = gtin.length === 14 ? gtin.slice(8, 13) : gtin.slice(7, 12);
-    for (const item of catalog) {
+    for (const item of cat) {
       const refDigits = item.refNumber.replace(/\./g, "");
-      // Last N digits of ref match the item reference portion
       if (itemRef.endsWith(refDigits.slice(-3)) && refDigits.length >= 3) return item;
     }
 
@@ -291,7 +288,7 @@ export default function Scanner() {
           // Neodent uses XXX.NNN format. Old refs (109.NNN) vs new refs (140.NNN)
           // share the same NNN item number after the dot — match on that.
           const gudidItem = gudidRef.includes(".") ? gudidRef.split(".").pop()! : "";
-          const match = catalog.find(c => {
+          const match = catalogRef.current.find(c => {
             if (c.refNumber === gudidRef) return true;
             if (c.refNumber.replace(/\./g, "") === gudidRef.replace(/\./g, "")) return true;
             // Match on item number after the dot (handles 109.947 <-> 140.947)
