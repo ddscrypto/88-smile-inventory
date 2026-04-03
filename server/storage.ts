@@ -148,6 +148,18 @@ export class DatabaseStorage implements IStorage {
     if (catCount === 0) {
       this.seedCatalog();
     }
+
+    // Migration: add MUA items if not yet present
+    const muaCount = (sqlite.prepare("SELECT COUNT(*) as c FROM catalog_items WHERE platform = 'MUA'").get() as any).c;
+    if (muaCount === 0) {
+      const insert = sqlite.prepare(
+        `INSERT INTO catalog_items (brand, line, body, surface, diameter, length, ref_number, connection, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      const batch = sqlite.transaction((items: any[]) => {
+        for (const i of items) insert.run(i.brand, i.line, i.body, i.surface, i.diameter, i.length, i.ref, i.connection, i.platform);
+      });
+      batch(this.buildMuaItems());
+    }
   }
 
   private seedCatalog() {
@@ -235,7 +247,54 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // =============================================
+    // GM MUA — Multi-Unit Abutments (Grand Morse)
+    // body=MUA, surface=angle, diameter=GH, length="MUA"
+    // =============================================
+    const muaItems = this.buildMuaItems();
+    for (const m of muaItems) items.push(m);
+
     batch(items);
+  }
+
+  private buildMuaItems(): any[] {
+    const nd = "Neodent";
+    const items: any[] = [];
+
+    // Straight 0° MUAs — gingival heights: 0.8, 1.5, 2.5, 3.5, 4.5, 5.5
+    const straight: Record<string, string> = {
+      "0.8": "115.248",
+      "1.5": "115.247",
+      "2.5": "115.246",
+      "3.5": "115.245",
+      "4.5": "115.244",
+      "5.5": "115.243",
+    };
+    for (const [gh, ref] of Object.entries(straight)) {
+      items.push({ brand: nd, line: "Grand Morse", body: "MUA", surface: "0°", diameter: gh, length: "MUA", ref, connection: "Grand Morse", platform: "MUA" });
+    }
+
+    // Angled 17° MUAs — gingival heights: 1.5, 2.5, 3.5
+    const angled17: Record<string, string> = {
+      "1.5": "115.275",
+      "2.5": "115.276",
+      "3.5": "115.277",
+    };
+    for (const [gh, ref] of Object.entries(angled17)) {
+      items.push({ brand: nd, line: "Grand Morse", body: "MUA", surface: "17°", diameter: gh, length: "MUA", ref, connection: "Grand Morse", platform: "MUA" });
+    }
+
+    // Angled 30° MUAs — gingival heights: 1.5, 2.5, 3.5
+    const angled30: Record<string, string> = {
+      "1.5": "115.278",
+      "2.5": "115.279",
+      "3.5": "115.280",
+    };
+    for (const [gh, ref] of Object.entries(angled30)) {
+      items.push({ brand: nd, line: "Grand Morse", body: "MUA", surface: "30°", diameter: gh, length: "MUA", ref, connection: "Grand Morse", platform: "MUA" });
+    }
+
+    return items;
   }
 
   // Staff

@@ -187,14 +187,16 @@ export default function Scanner() {
   // Helper: auto-fill form from a catalog match + GS1 data
   const autoFillFromCatalog = (match: CatalogItem, gs1: { lot?: string; expiration?: string }) => {
     setSelectedCatalog(match);
-    const prodName = match.body === match.line ? match.body : `${match.body} ${match.line}`;
+    const prodName = match.platform === "MUA"
+      ? `MUA ${match.surface} GH ${match.diameter}mm`
+      : match.body === match.line ? match.body : `${match.body} ${match.line}`;
     setForm(f => ({
       ...f,
       brand: match.brand,
       productName: prodName,
       refNumber: match.refNumber,
-      diameter: match.diameter,
-      length: match.length,
+      diameter: match.platform === "MUA" ? match.diameter : match.diameter, // GH for MUA
+      length: match.platform === "MUA" ? match.surface : match.length, // angle for MUA
       lotNumber: gs1.lot || f.lotNumber,
       expirationDate: gs1.expiration || f.expirationDate,
     }));
@@ -641,8 +643,14 @@ export default function Scanner() {
                         data-testid={`catalog-item-${item.id}`}
                       >
                         <div>
-                          <div className="text-[13px] font-medium">{item.body} · Ø{item.diameter}×{item.length}mm</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">{item.surface} · REF {item.refNumber}</div>
+                          <div className="text-[13px] font-medium">
+                            {item.platform === "MUA"
+                              ? `MUA · ${item.surface} · GH ${item.diameter}mm`
+                              : `${item.body} · Ø${item.diameter}×${item.length}mm`}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {item.platform === "MUA" ? `Grand Morse` : item.surface} · REF {item.refNumber}
+                          </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
                       </button>
@@ -686,7 +694,9 @@ export default function Scanner() {
                 </span>
               </div>
               <p className="text-[12px] text-muted-foreground">
-                {selectedCatalog.brand} · {selectedCatalog.body === selectedCatalog.line ? selectedCatalog.body : `${selectedCatalog.body} ${selectedCatalog.line}`} · Ø{selectedCatalog.diameter}×{selectedCatalog.length}mm
+                {selectedCatalog.brand} · {selectedCatalog.platform === "MUA"
+                  ? `MUA ${selectedCatalog.surface} · GH ${selectedCatalog.diameter}mm`
+                  : `${selectedCatalog.body === selectedCatalog.line ? selectedCatalog.body : `${selectedCatalog.body} ${selectedCatalog.line}`} · Ø${selectedCatalog.diameter}×${selectedCatalog.length}mm`}
               </p>
               <p className="text-[12px] text-muted-foreground">
                 REF {selectedCatalog.refNumber} · Lot: {form.lotNumber || "—"} · Exp: {form.expirationDate || "—"}
