@@ -165,8 +165,8 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
             <InfoCell label="Lot #" value={implant.lotNumber} />
             <InfoCell label="REF #" value={implant.refNumber} />
             <InfoCell label="Size" value={implant.size} />
-            <InfoCell label="Diameter" value={implant.diameter} />
-            <InfoCell label="Length" value={implant.length} />
+            <InfoCell label={implant.productName?.includes("MUA") ? "GH" : "Diameter"} value={implant.productName?.includes("MUA") ? `${implant.diameter}mm` : implant.diameter} />
+            <InfoCell label={implant.productName?.includes("MUA") ? "Angle" : "Length"} value={implant.productName?.includes("MUA") ? implant.length : implant.length} />
             <InfoCell label="Expiration" value={implant.expirationDate} />
             <InfoCell label="Supplier" value={implant.supplier} />
             <InfoCell label="Cost" value={implant.cost} />

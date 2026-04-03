@@ -348,9 +348,13 @@ export default function Scanner() {
         productName: form.productName || (selectedCatalog ? (selectedCatalog.body === selectedCatalog.line ? selectedCatalog.body : `${selectedCatalog.body} ${selectedCatalog.line}`) : ""),
         lotNumber: form.lotNumber,
         refNumber: form.refNumber || selectedCatalog?.refNumber || "",
-        size: form.size || (selectedCatalog ? `Ø${selectedCatalog.diameter}×${selectedCatalog.length}mm` : ""),
+        size: form.size || (selectedCatalog
+          ? selectedCatalog.platform === "MUA"
+            ? `GH ${selectedCatalog.diameter}mm · ${selectedCatalog.surface}`
+            : `Ø${selectedCatalog.diameter}×${selectedCatalog.length}mm`
+          : ""),
         diameter: form.diameter || selectedCatalog?.diameter || "",
-        length: form.length || selectedCatalog?.length || "",
+        length: form.length || (selectedCatalog?.platform === "MUA" ? selectedCatalog?.surface || "" : selectedCatalog?.length || ""),
         expirationDate: form.expirationDate,
         supplier: form.supplier,
         cost: form.cost,
@@ -549,7 +553,7 @@ export default function Scanner() {
             <div className="space-y-2">
               <DetailLine label="Brand" value={foundImplant.brand} />
               <DetailLine label="Product" value={foundImplant.productName} />
-              <DetailLine label="Size" value={`Ø${foundImplant.diameter}×${foundImplant.length}mm`} />
+              <DetailLine label="Size" value={foundImplant.size || `Ø${foundImplant.diameter}×${foundImplant.length}mm`} />
               <DetailLine label="Lot #" value={foundImplant.lotNumber} />
               <DetailLine label="Status" value={foundImplant.status === "in" ? "In Stock" : "Checked Out"} valueClass={foundImplant.status === "in" ? "text-emerald-500" : "text-amber-500"} />
             </div>
@@ -712,7 +716,9 @@ export default function Scanner() {
                 </span>
               </div>
               <p className="text-[12px] text-muted-foreground">
-                Ø{selectedCatalog.diameter}×{selectedCatalog.length}mm · {selectedCatalog.surface} · REF {selectedCatalog.refNumber}
+                {selectedCatalog.platform === "MUA"
+                  ? `GH ${selectedCatalog.diameter}mm · ${selectedCatalog.surface}`
+                  : `Ø${selectedCatalog.diameter}×${selectedCatalog.length}mm · ${selectedCatalog.surface}`} · REF {selectedCatalog.refNumber}
               </p>
               <button onClick={() => { setSelectedCatalog(null); setMode("selectCatalog"); }} className="text-[11px] text-primary mt-1.5 font-medium">Change selection</button>
             </div>
