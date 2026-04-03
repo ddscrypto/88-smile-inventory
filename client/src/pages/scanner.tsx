@@ -279,19 +279,18 @@ export default function Scanner() {
     }
 
     // Strategy B: Try GUDID API (works for FDA-registered devices)
+    let gudidRef = "";
+    let gudidError = "";
     if (gs1.gtin) {
       try {
         const lookupRes = await apiRequest("GET", `/api/lookup-gtin/${gs1.gtin}`);
         const gudid = await lookupRes.json();
+        gudidRef = gudid.catalogNumber || "";
 
-        if (gudid.catalogNumber) {
-          const gudidRef = gudid.catalogNumber as string;
+        if (gudidRef) {
           const match = catalog.find(c => {
-            // Exact match
             if (c.refNumber === gudidRef) return true;
-            // Dot-stripped match (e.g. "140.947" vs "140947")
             if (c.refNumber.replace(/\./g, "") === gudidRef.replace(/\./g, "")) return true;
-            // Neodent re-numbering: 109.xxx → 140.xxx (last 5 chars after dot-strip match)
             const refSuffix = c.refNumber.replace(/\./g, "").slice(-5);
             const gudidSuffix = gudidRef.replace(/\./g, "").slice(-5);
             if (refSuffix === gudidSuffix && refSuffix.length === 5) return true;
@@ -302,10 +301,17 @@ export default function Scanner() {
             return;
           }
         }
-      } catch {
-        // GUDID lookup failed — continue
+      } catch (e: any) {
+        gudidError = e?.message || "fetch failed";
       }
     }
+
+    // DEBUG — show exactly why matching failed
+    toast({
+      title: "⚠️ No catalog match",
+      description: `gtin: ${gs1.gtin||"none"}\ngudidRef: ${gudidRef||"none"}\nerr: ${gudidError||"none"}\ncatalog size: ${catalog.length}`,
+      duration: 20000,
+    });
 
     // 4. No auto-match — show catalog selector
     setMode("selectCatalog");
