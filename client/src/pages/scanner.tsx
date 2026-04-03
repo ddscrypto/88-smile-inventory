@@ -234,14 +234,6 @@ export default function Scanner() {
     // 1. Parse GS1 data
     const gs1 = parseGS1(data);
 
-    // DEBUG: show raw scan + parsed fields so we can fix parsing
-    const rawHex = Array.from(data).map(c => c.charCodeAt(0) > 31 ? c : `[${c.charCodeAt(0)}]`).join("");
-    toast({
-      title: "📷 Scan debug",
-      description: `raw: ${rawHex.slice(0,60)}\ngtin: ${gs1.gtin||"—"} lot: ${gs1.lot||"—"} exp: ${gs1.expiration||"—"}`,
-      duration: 15000,
-    });
-
     // Pre-fill form with parsed data
     setForm(f => ({
       ...f,
@@ -293,10 +285,18 @@ export default function Scanner() {
         const gudid = await lookupRes.json();
 
         if (gudid.catalogNumber) {
-          const match = catalog.find(c =>
-            c.refNumber === gudid.catalogNumber ||
-            c.refNumber.replace(".", "") === gudid.catalogNumber.replace(".", "")
-          );
+          const gudidRef = gudid.catalogNumber as string;
+          const match = catalog.find(c => {
+            // Exact match
+            if (c.refNumber === gudidRef) return true;
+            // Dot-stripped match (e.g. "140.947" vs "140947")
+            if (c.refNumber.replace(/\./g, "") === gudidRef.replace(/\./g, "")) return true;
+            // Neodent re-numbering: 109.xxx → 140.xxx (last 5 chars after dot-strip match)
+            const refSuffix = c.refNumber.replace(/\./g, "").slice(-5);
+            const gudidSuffix = gudidRef.replace(/\./g, "").slice(-5);
+            if (refSuffix === gudidSuffix && refSuffix.length === 5) return true;
+            return false;
+          });
           if (match) {
             autoFillFromCatalog(match, gs1);
             return;
