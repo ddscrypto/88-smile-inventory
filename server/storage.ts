@@ -149,17 +149,16 @@ export class DatabaseStorage implements IStorage {
       this.seedCatalog();
     }
 
-    // Migration: add MUA items if not yet present
-    const muaCount = (sqlite.prepare("SELECT COUNT(*) as c FROM catalog_items WHERE platform = 'MUA'").get() as any).c;
-    if (muaCount === 0) {
-      const insert = sqlite.prepare(
-        `INSERT INTO catalog_items (brand, line, body, surface, diameter, length, ref_number, connection, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      );
-      const batch = sqlite.transaction((items: any[]) => {
-        for (const i of items) insert.run(i.brand, i.line, i.body, i.surface, i.diameter, i.length, i.ref, i.connection, i.platform);
-      });
-      batch(this.buildMuaItems());
-    }
+    // Migration: add or fix MUA items
+    // Always rebuild MUAs to fix any incorrect GH mapping (idempotent)
+    sqlite.exec(`DELETE FROM catalog_items WHERE platform = 'MUA'`);
+    const insert = sqlite.prepare(
+      `INSERT INTO catalog_items (brand, line, body, surface, diameter, length, ref_number, connection, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const muaBatch = sqlite.transaction((items: any[]) => {
+      for (const i of items) insert.run(i.brand, i.line, i.body, i.surface, i.diameter, i.length, i.ref, i.connection, i.platform);
+    });
+    muaBatch(this.buildMuaItems());
   }
 
   private seedCatalog() {
@@ -261,14 +260,14 @@ export class DatabaseStorage implements IStorage {
     const nd = "Neodent";
     const items: any[] = [];
 
-    // Straight 0° MUAs — gingival heights: 0.8, 1.5, 2.5, 3.5, 4.5, 5.5
+    // Straight 0° MUAs — REF order confirmed by physical box (115.245 = 2.5mm)
     const straight: Record<string, string> = {
-      "0.8": "115.248",
-      "1.5": "115.247",
-      "2.5": "115.246",
-      "3.5": "115.245",
-      "4.5": "115.244",
-      "5.5": "115.243",
+      "0.8": "115.243",
+      "1.5": "115.244",
+      "2.5": "115.245",
+      "3.5": "115.246",
+      "4.5": "115.247",
+      "5.5": "115.248",
     };
     for (const [gh, ref] of Object.entries(straight)) {
       items.push({ brand: nd, line: "Grand Morse", body: "MUA", surface: "0°", diameter: gh, length: "MUA", ref, connection: "Grand Morse", platform: "MUA" });
