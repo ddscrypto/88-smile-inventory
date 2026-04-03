@@ -288,12 +288,15 @@ export default function Scanner() {
         gudidRef = gudid.catalogNumber || "";
 
         if (gudidRef) {
+          // Neodent uses XXX.NNN format. Old refs (109.NNN) vs new refs (140.NNN)
+          // share the same NNN item number after the dot — match on that.
+          const gudidItem = gudidRef.includes(".") ? gudidRef.split(".").pop()! : "";
           const match = catalog.find(c => {
             if (c.refNumber === gudidRef) return true;
             if (c.refNumber.replace(/\./g, "") === gudidRef.replace(/\./g, "")) return true;
-            const refSuffix = c.refNumber.replace(/\./g, "").slice(-5);
-            const gudidSuffix = gudidRef.replace(/\./g, "").slice(-5);
-            if (refSuffix === gudidSuffix && refSuffix.length === 5) return true;
+            // Match on item number after the dot (handles 109.947 <-> 140.947)
+            const catItem = c.refNumber.includes(".") ? c.refNumber.split(".").pop()! : "";
+            if (gudidItem && catItem && catItem === gudidItem) return true;
             return false;
           });
           if (match) {
@@ -305,13 +308,6 @@ export default function Scanner() {
         gudidError = e?.message || "fetch failed";
       }
     }
-
-    // DEBUG — show exactly why matching failed
-    toast({
-      title: "⚠️ No catalog match",
-      description: `gtin: ${gs1.gtin||"none"}\ngudidRef: ${gudidRef||"none"}\nerr: ${gudidError||"none"}\ncatalog size: ${catalog.length}`,
-      duration: 20000,
-    });
 
     // 4. No auto-match — show catalog selector
     setMode("selectCatalog");
