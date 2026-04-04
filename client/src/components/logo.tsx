@@ -1,63 +1,61 @@
 /**
- * 88 Smile Designs logo components
- * Three solid filled balls: green (top-left), red (top-right), yellow (bottom-center)
- * Touching but separate — not overlapping like a Venn diagram
+ * 88 Smile Designs logo — exact match to official branding
+ * Three hollow rings (green top-left, red top-right, yellow bottom-center)
+ * touching in a triangle arrangement, vertical blue separator, SMILE designs text
  */
 
-// Icon-only version — for small spaces like nav headers
+// Icon-only (rings only) — used in nav header and as app icon base
 export function LogoIcon({ size = 32, className = "" }: { size?: number; className?: string }) {
-  // Three solid balls arranged in a triangle, touching but separate
-  // r=28, centers spaced so circles just touch (distance = 2*r = 56)
+  // Circles: r=28, stroke=5. Centers form equilateral triangle.
+  // Green: (28, 28), Red: (72, 28), Yellow: (50, 70)
+  // Distance between top centers = 44, diameter = 56 → they overlap slightly (touching/kissing)
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 96"
+      viewBox="0 0 100 98"
       fill="none"
       aria-label="88 Smile Designs"
       className={className}
     >
-      {/* Green ball — top left */}
-      <circle cx="28" cy="28" r="26" fill="#16a34a" />
-      {/* subtle highlight */}
-      <circle cx="20" cy="20" r="8" fill="white" fillOpacity="0.25" />
-      {/* Red ball — top right */}
-      <circle cx="72" cy="28" r="26" fill="#dc2626" />
-      <circle cx="64" cy="20" r="8" fill="white" fillOpacity="0.25" />
-      {/* Yellow ball — bottom center */}
-      <circle cx="50" cy="70" r="26" fill="#eab308" />
-      <circle cx="42" cy="62" r="8" fill="white" fillOpacity="0.25" />
+      {/* Green ring — top left */}
+      <circle cx="28" cy="30" r="24" stroke="#2e9e44" strokeWidth="5" fill="none" />
+      {/* Red ring — top right */}
+      <circle cx="72" cy="30" r="24" stroke="#cc2936" strokeWidth="5" fill="none" />
+      {/* Yellow ring — bottom center */}
+      <circle cx="50" cy="68" r="24" stroke="#e6a817" strokeWidth="5" fill="none" />
     </svg>
   );
 }
 
 // Wide version with text — for lock screen and staff login
 export function LogoWide({ height = 48, className = "" }: { height?: number; className?: string }) {
-  const width = height * 3.4;
+  const width = height * 3.8;
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 204 60"
+      viewBox="0 0 228 60"
       fill="none"
       aria-label="88 Smile Designs"
       className={className}
     >
-      {/* Green ball */}
-      <circle cx="16" cy="22" r="15" fill="#16a34a" />
-      <circle cx="11" cy="17" r="5" fill="white" fillOpacity="0.25" />
-      {/* Red ball */}
-      <circle cx="46" cy="22" r="15" fill="#dc2626" />
-      <circle cx="41" cy="17" r="5" fill="white" fillOpacity="0.25" />
-      {/* Yellow ball */}
-      <circle cx="31" cy="43" r="15" fill="#eab308" />
-      <circle cx="26" cy="38" r="5" fill="white" fillOpacity="0.25" />
-      {/* Vertical separator */}
-      <line x1="70" y1="6" x2="70" y2="54" stroke="#94a3b8" strokeWidth="1.5" />
-      {/* SMILE text */}
-      <text x="80" y="29" fill="#1e40af" fontSize="22" fontWeight="600" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="1.5">SMILE</text>
-      {/* designs text */}
-      <text x="80" y="50" fill="#3b82f6" fontSize="17" fontWeight="300" fontFamily="system-ui, -apple-system, sans-serif" letterSpacing="1">designs</text>
+      {/* Green ring — top left */}
+      <circle cx="18" cy="22" r="15" stroke="#2e9e44" strokeWidth="3.5" fill="none" />
+      {/* Red ring — top right */}
+      <circle cx="48" cy="22" r="15" stroke="#cc2936" strokeWidth="3.5" fill="none" />
+      {/* Yellow ring — bottom center */}
+      <circle cx="33" cy="42" r="15" stroke="#e6a817" strokeWidth="3.5" fill="none" />
+      {/* Vertical blue separator line */}
+      <line x1="74" y1="6" x2="74" y2="54" stroke="#3b82f6" strokeWidth="1.5" />
+      {/* SMILE — bold blue */}
+      <text x="84" y="30" fill="#1d4ed8" fontSize="23" fontWeight="700"
+        fontFamily="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        letterSpacing="1">SMILE</text>
+      {/* designs — lighter blue */}
+      <text x="84" y="50" fill="#3b82f6" fontSize="19" fontWeight="300"
+        fontFamily="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        letterSpacing="0.5">designs</text>
     </svg>
   );
 }
