@@ -73,6 +73,10 @@ export default function Dashboard() {
 
   // Breakdown by product type
   const allImplants = implants || [];
+
+  // Top 5 in-stock items
+  const inStockItems = allImplants.filter(i => i.status === "in");
+  const top5InStock = inStockItems.slice(0, 5);
   const implantCount = allImplants.filter(i => i.productName && !i.productName.includes("MUA")).length;
   const muaCount = allImplants.filter(i => i.productName && i.productName.includes("MUA")).length;
   const implantInStock = allImplants.filter(i => i.status === "in" && !i.productName?.includes("MUA")).length;
@@ -167,6 +171,45 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Top 5 In Stock */}
+      <div className="rounded-2xl bg-white dark:bg-card border border-border/40 overflow-hidden">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary" />
+            <span className="text-[13px] font-bold uppercase tracking-wide text-muted-foreground">In Stock</span>
+          </div>
+          <Link href="/items" className="text-[12px] text-primary font-medium">View all ›</Link>
+        </div>
+        {implantLoading ? (
+          <div className="p-4 space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}</div>
+        ) : top5InStock.length === 0 ? (
+          <div className="px-4 pb-4">
+            <p className="text-[13px] text-muted-foreground text-center py-4">No items in stock yet</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/30">
+            {top5InStock.map((item, idx) => (
+              <Link key={item.id} href={`/implant/${item.id}`}>
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <span className="w-5 text-[12px] font-bold text-muted-foreground/50 tabular-nums">{idx + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate">{item.productName || item.brand}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{item.size || `Ø${item.diameter}×${item.length}mm`} · REF {item.refNumber}</p>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                    item.productName?.includes("MUA")
+                      ? "bg-purple-50 text-purple-600"
+                      : "bg-blue-50 text-blue-600"
+                  }`}>
+                    {item.productName?.includes("MUA") ? "MUA" : "Implant"}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Low Stock / Reorder Alert */}
       {!lowStockLoading && lowStock.length > 0 && (

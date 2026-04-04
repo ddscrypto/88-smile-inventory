@@ -368,11 +368,18 @@ export default function Scanner() {
       return res.json();
     },
     onSuccess: (implant: Implant) => {
+      // Stop camera FIRST before navigating to prevent crash
+      if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} scannerRef.current = null; }
       queryClient.invalidateQueries({ queryKey: ["/api/implants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
-      toast({ title: "Added to inventory" });
-      navigate(`/implant/${implant.id}`);
+      toast({ title: "Added to inventory ✓" });
+      // Small delay so toast shows before navigation
+      setTimeout(() => navigate(`/implant/${implant.id}`), 300);
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to save", description: err?.message || "Please try again", variant: "destructive" });
+      setIsProcessing(false);
     },
   });
 
@@ -382,10 +389,11 @@ export default function Scanner() {
       return res.json();
     },
     onSuccess: () => {
+      if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} scannerRef.current = null; }
       queryClient.invalidateQueries({ queryKey: ["/api/implants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
-      toast({ title: "Checked out" });
+      toast({ title: "Checked out ✓" });
       resetScanner();
     },
   });
@@ -412,7 +420,9 @@ export default function Scanner() {
     setForm({ lotNumber: "", expirationDate: "", supplier: "", cost: "50", location: "", notes: "", brand: "", productName: "", refNumber: "", diameter: "", length: "", size: "" });
   };
 
+  // Auto-start camera when Scan tab opens
   useEffect(() => {
+    startScanner();
     return () => { if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} } };
   }, []);
 

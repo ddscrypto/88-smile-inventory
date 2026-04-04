@@ -40,6 +40,9 @@ export interface IStorage {
   getImplantByQr(qrData: string): Implant | undefined;
   getImplantByLot(lotNumber: string): Implant | undefined;
   searchImplants(query: string): Implant[];
+  // Face ID / WebAuthn
+  getStaffWebAuthnCredential(staffId: number): string | null;
+  setStaffWebAuthnCredential(staffId: number, credentialId: string): void;
   createImplant(implant: InsertImplant): Implant;
   updateImplant(id: number, data: Partial<InsertImplant>): Implant | undefined;
   deleteImplant(id: number): void;
@@ -148,6 +151,13 @@ export class DatabaseStorage implements IStorage {
     if (catCount === 0) {
       this.seedCatalog();
     }
+
+    // Migration: create webauthn_credentials table
+    sqlite.exec(`CREATE TABLE IF NOT EXISTS webauthn_credentials (
+      staff_id INTEGER PRIMARY KEY,
+      credential_id TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
 
     // Migration: add or fix MUA items
     // Always rebuild MUAs to fix any incorrect GH mapping (idempotent)
@@ -329,6 +339,13 @@ export class DatabaseStorage implements IStorage {
   getImplantById(id: number): Implant | undefined { return db.select().from(implants).where(eq(implants.id, id)).get(); }
   getImplantByQr(qrData: string): Implant | undefined { return db.select().from(implants).where(eq(implants.qrData, qrData)).get(); }
   getImplantByLot(lotNumber: string): Implant | undefined { return db.select().from(implants).where(eq(implants.lotNumber, lotNumber)).get(); }
+  getStaffWebAuthnCredential(staffId: number): string | null {
+    const row = sqlite.prepare(`SELECT credential_id FROM webauthn_credentials WHERE staff_id = ?`).get(staffId) as any;
+    return row ? row.credential_id : null;
+  }
+  setStaffWebAuthnCredential(staffId: number, credentialId: string): void {
+    sqlite.prepare(`INSERT OR REPLACE INTO webauthn_credentials (staff_id, credential_id) VALUES (?, ?)`).run(staffId, credentialId);
+  }
   searchImplants(query: string): Implant[] {
     const p = `%${query}%`;
     return db.select().from(implants).where(

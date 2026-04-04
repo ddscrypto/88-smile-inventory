@@ -221,6 +221,29 @@ export async function registerRoutes(
     res.json(storage.getActivitiesByImplant(Number(req.params.implantId)));
   });
 
+  // --- Face ID / WebAuthn ---
+  // Get challenge for registration or authentication
+  app.get("/api/webauthn/challenge", (_req, res) => {
+    const challenge = Buffer.from(crypto.randomUUID().replace(/-/g, ""), "hex");
+    res.json({ challenge: challenge.toString("base64url") });
+  });
+
+  // Save credential ID after registration
+  app.post("/api/staff/:id/webauthn/register", (req, res) => {
+    const id = Number(req.params.id);
+    const { credentialId } = req.body;
+    if (!credentialId) return res.status(400).json({ error: "credentialId required" });
+    storage.setStaffWebAuthnCredential(id, credentialId);
+    res.json({ ok: true });
+  });
+
+  // Get credential ID for authentication
+  app.get("/api/staff/:id/webauthn/credential", (req, res) => {
+    const id = Number(req.params.id);
+    const credentialId = storage.getStaffWebAuthnCredential(id);
+    res.json({ credentialId });
+  });
+
   // --- Dashboard stats ---
   app.get("/api/stats", (_req, res) => {
     const all = storage.getImplants();
