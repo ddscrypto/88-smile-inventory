@@ -96,36 +96,48 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
 
   const verifyMutation = useMutation({
     mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
-      const res = await apiRequest("POST", `/api/staff/${id}/verify-pin`, { pin });
-      return res.json();
+      try {
+        const res = await apiRequest("POST", `/api/staff/${id}/verify-pin`, { pin });
+        return res.json();
+      } catch {
+        return { valid: false };
+      }
     },
     onSuccess: (data: any) => {
-      if (data.valid && selectedStaff) {
+      if (data?.valid && selectedStaff) {
         onLogin(selectedStaff.name, selectedStaff.role);
       } else {
-        setError("Wrong password");
+        setError("Wrong password. Try again.");
         setPin("");
       }
     },
     onError: () => {
-      setError("Wrong password");
+      setError("Wrong password. Try again.");
       setPin("");
     },
   });
 
   const setPinMutation = useMutation({
     mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
-      const res = await apiRequest("POST", `/api/staff/${id}/set-pin`, { pin });
-      return res.json();
+      try {
+        const res = await apiRequest("POST", `/api/staff/${id}/set-pin`, { pin });
+        return res.json();
+      } catch {
+        return { ok: false };
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data?.ok === false) {
+        setError("Could not set password. Try again.");
+        return;
+      }
       toast({ title: "Password set" });
       if (selectedStaff) {
         onLogin(selectedStaff.name, selectedStaff.role);
       }
     },
     onError: () => {
-      setError("Could not set password");
+      setError("Could not set password. Try again.");
     },
   });
 

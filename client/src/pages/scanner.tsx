@@ -420,11 +420,17 @@ export default function Scanner() {
     setForm({ lotNumber: "", expirationDate: "", supplier: "", cost: "50", location: "", notes: "", brand: "", productName: "", refNumber: "", diameter: "", length: "", size: "" });
   };
 
-  // Auto-start camera when Scan tab opens
+  // Auto-start camera after DOM is ready, stop on unmount
   useEffect(() => {
-    startScanner();
-    return () => { if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} } };
-  }, []);
+    // Wait for component + DOM to fully render before starting camera
+    const timer = setTimeout(() => {
+      if (mode === "idle") startScanner();
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      if (scannerRef.current) { try { scannerRef.current.stop(); } catch {} scannerRef.current = null; }
+    };
+  }, []); // Only on mount
 
   // Catalog filtering
   const lines = [...new Set(catalog.map(c => c.line))];
