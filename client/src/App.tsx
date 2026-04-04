@@ -20,11 +20,10 @@ import AppLayout from "@/components/app-layout";
 import LockScreen, { useLockScreen } from "@/pages/lock-screen";
 import StaffLogin from "@/pages/staff-login";
 import { SessionProvider, useSession } from "@/lib/session-context";
-import { type ReactNode } from "react";
-import React from "react";
+import { Component, type ReactNode } from "react";
 
 // Error boundary to catch render crashes and show a recovery screen
-class ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError: boolean }> {
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: any) {
     super(props);
     this.state = { hasError: false };
