@@ -139,29 +139,29 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Surgical Waste Tracker */}
-      {!statsLoading && (stats?.trashed || 0) > 0 && (
+      {/* Surgical Waste Tracker — always visible */}
+      {!statsLoading && (
         <div className="rounded-2xl bg-white dark:bg-card border border-border/40 p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Trash2 className="w-4 h-4 text-red-400" />
               <span className="text-[13px] font-bold text-red-500">Surgical Discards</span>
             </div>
-            {isDoctor && stats?.trashedCost > 0 && (
+            {isDoctor && (
               <span className="text-[12px] font-semibold text-muted-foreground">
-                ${stats.trashedCost.toFixed(0)} lost
+                ${(stats?.trashedCost || 0).toFixed(2)} lost
               </span>
             )}
           </div>
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-[26px] font-bold tabular-nums text-red-500 leading-none">{stats?.trashed}</p>
+              <p className="text-[26px] font-bold tabular-nums text-red-500 leading-none">{stats?.trashed || 0}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">item{(stats?.trashed || 0) !== 1 ? "s" : ""} trashed</p>
             </div>
-            {isDoctor && stats?.trashedCost > 0 && (
+            {isDoctor && (
               <div className="flex-1 bg-red-50 dark:bg-red-950/20 rounded-xl p-3">
                 <p className="text-[11px] text-muted-foreground">Total cost</p>
-                <p className="text-[18px] font-bold text-red-500">${stats.trashedCost.toFixed(0)}</p>
+                <p className="text-[18px] font-bold text-red-500">${(stats?.trashedCost || 0).toFixed(2)}</p>
               </div>
             )}
           </div>
