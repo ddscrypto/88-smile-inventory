@@ -20,33 +20,6 @@ import AppLayout from "@/components/app-layout";
 import LockScreen, { useLockScreen } from "@/pages/lock-screen";
 import StaffLogin from "@/pages/staff-login";
 import { SessionProvider, useSession } from "@/lib/session-context";
-import { Component, type ReactNode } from "react";
-
-// Error boundary to catch render crashes and show a recovery screen
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() { return { hasError: true }; }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", padding: "24px", gap: "16px" }}>
-          <p style={{ fontWeight: 700, fontSize: 18 }}>Something went wrong</p>
-          <p style={{ color: "#666", fontSize: 14, textAlign: "center" }}>Tap below to reload the app</p>
-          <button
-            onClick={() => { this.setState({ hasError: false }); window.location.hash = "/"; }}
-            style={{ background: "#1d4ed8", color: "white", border: "none", borderRadius: 12, padding: "12px 32px", fontSize: 15, fontWeight: 600 }}
-          >
-            Reload
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 function AppRouter() {
   return (
@@ -91,16 +64,14 @@ function AppGate() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <SessionProvider>
-            <Toaster />
-            <AppGate />
-          </SessionProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SessionProvider>
+          <Toaster />
+          <AppGate />
+        </SessionProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

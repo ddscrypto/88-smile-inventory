@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { UserCircle2, Lock, Eye, EyeOff, ArrowLeft, ScanFace } from "lucide-react";
+import { UserCircle2, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import type { Staff } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -8,51 +8,6 @@ import { Button } from "@/components/ui/button";
 import { LogoWide } from "@/components/logo";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-// WebAuthn helpers for Face ID / Touch ID
-async function registerFaceId(staffId: number, staffName: string): Promise<boolean> {
-  try {
-    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if (!available) return false;
-    const challengeRes = await apiRequest("GET", "/api/webauthn/challenge");
-    const { challenge } = await challengeRes.json();
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge: Uint8Array.from(atob(challenge.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0)),
-        rp: { name: "88 Smile Designs", id: location.hostname },
-        user: { id: new TextEncoder().encode(`staff-${staffId}`), name: staffName, displayName: staffName },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
-        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
-        timeout: 60000,
-      }
-    }) as PublicKeyCredential;
-    if (!credential) return false;
-    const credId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
-      .replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
-    await apiRequest("POST", `/api/staff/${staffId}/webauthn/register`, { credentialId: credId });
-    return true;
-  } catch { return false; }
-}
-
-async function authenticateWithFaceId(staffId: number): Promise<boolean> {
-  try {
-    const credRes = await apiRequest("GET", `/api/staff/${staffId}/webauthn/credential`);
-    const { credentialId } = await credRes.json();
-    if (!credentialId) return false;
-    const challengeRes = await apiRequest("GET", "/api/webauthn/challenge");
-    const { challenge } = await challengeRes.json();
-    const credIdBytes = Uint8Array.from(atob(credentialId.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0));
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge: Uint8Array.from(atob(challenge.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0)),
-        allowCredentials: [{ id: credIdBytes, type: "public-key", transports: ["internal"] }],
-        userVerification: "required",
-        timeout: 60000,
-      }
-    });
-    return !!assertion;
-  } catch { return false; }
-}
 
 const roleColors: Record<string, string> = {
   dentist: "bg-primary/15 text-primary border-primary/20",
@@ -79,65 +34,39 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
   const [error, setError] = useState("");
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [newPin, setNewPin] = useState("");
-  const [faceIdLoading, setFaceIdLoading] = useState(false);
-  const [hasFaceId, setHasFaceId] = useState(false);
-  const [faceIdAvailable, setFaceIdAvailable] = useState(false);
-
-  // Check Face ID availability and if staff has it registered
-  const checkFaceId = async (s: StaffWithPin) => {
-    const supported = typeof PublicKeyCredential !== "undefined" &&
-      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
-    setFaceIdAvailable(!!supported);
-    if (supported) {
-      const credRes = await apiRequest("GET", `/api/staff/${s.id}/webauthn/credential`).then(r => r.json()).catch(() => ({}));
-      setHasFaceId(!!credRes.credentialId);
-    }
-  };
 
   const verifyMutation = useMutation({
     mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
-      try {
-        const res = await apiRequest("POST", `/api/staff/${id}/verify-pin`, { pin });
-        return res.json();
-      } catch {
-        return { valid: false };
-      }
+      const res = await apiRequest("POST", `/api/staff/${id}/verify-pin`, { pin });
+      return res.json();
     },
     onSuccess: (data: any) => {
-      if (data?.valid && selectedStaff) {
+      if (data.valid && selectedStaff) {
         onLogin(selectedStaff.name, selectedStaff.role);
       } else {
-        setError("Wrong password. Try again.");
+        setError("Wrong password");
         setPin("");
       }
     },
     onError: () => {
-      setError("Wrong password. Try again.");
+      setError("Wrong password");
       setPin("");
     },
   });
 
   const setPinMutation = useMutation({
     mutationFn: async ({ id, pin }: { id: number; pin: string }) => {
-      try {
-        const res = await apiRequest("POST", `/api/staff/${id}/set-pin`, { pin });
-        return res.json();
-      } catch {
-        return { ok: false };
-      }
+      const res = await apiRequest("POST", `/api/staff/${id}/set-pin`, { pin });
+      return res.json();
     },
-    onSuccess: (data: any) => {
-      if (data?.ok === false) {
-        setError("Could not set password. Try again.");
-        return;
-      }
+    onSuccess: () => {
       toast({ title: "Password set" });
       if (selectedStaff) {
         onLogin(selectedStaff.name, selectedStaff.role);
       }
     },
     onError: () => {
-      setError("Could not set password. Try again.");
+      setError("Could not set password");
     },
   });
 
@@ -146,8 +75,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
     setPin("");
     setError("");
     setShowPin(false);
-    setHasFaceId(false);
-    checkFaceId(s);
     setIsSettingPin(false);
     setNewPin("");
 
@@ -261,31 +188,9 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
               </form>
             </div>
           ) : (
-            // ─── Returning: enter password (or Face ID) ───
+            // ─── Returning: enter password ───
             <div className="w-full max-w-xs">
               <p className="text-[14px] text-center font-medium text-foreground mb-5">Enter your password</p>
-
-              {/* Face ID button — shows if registered */}
-              {hasFaceId && (
-                <Button
-                  onClick={async () => {
-                    setFaceIdLoading(true);
-                    setError("");
-                    const ok = await authenticateWithFaceId(selectedStaff!.id);
-                    setFaceIdLoading(false);
-                    if (ok) {
-                      onLogin(selectedStaff!.name, selectedStaff!.role);
-                    } else {
-                      setError("Face ID failed. Enter your password.");
-                    }
-                  }}
-                  disabled={faceIdLoading}
-                  className="w-full h-12 rounded-xl text-[15px] font-semibold mb-3 bg-gray-900 hover:bg-gray-800 text-white flex items-center justify-center gap-2"
-                >
-                  <ScanFace className="w-5 h-5" />
-                  {faceIdLoading ? "Verifying..." : "Sign in with Face ID"}
-                </Button>
-              )}
 
               <div className="space-y-3">
                 <div className="relative">
@@ -299,7 +204,7 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                     placeholder="Password"
                     className="h-12 rounded-xl text-[15px] bg-white dark:bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 pl-10 pr-10"
                     style={{ WebkitTextSecurity: showPin ? "none" : "disc" } as any}
-                    autoFocus={!hasFaceId}
+                    autoFocus
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -326,25 +231,6 @@ export default function StaffLogin({ onLogin }: { onLogin: (name: string, role: 
                 >
                   {verifyMutation.isPending ? "Checking..." : "Sign In"}
                 </Button>
-
-                {/* Set up Face ID — shows if supported but not yet registered */}
-                {faceIdAvailable && !hasFaceId && (
-                  <button
-                    onClick={async () => {
-                      setError("");
-                      const ok = await registerFaceId(selectedStaff!.id, selectedStaff!.name);
-                      if (ok) {
-                        setHasFaceId(true);
-                        toast({ title: "Face ID set up ✓", description: "You can now sign in with Face ID" });
-                      } else {
-                        toast({ title: "Face ID not available", description: "Use your password to sign in", variant: "destructive" });
-                      }
-                    }}
-                    className="w-full text-[12px] text-primary text-center font-medium mt-1"
-                  >
-                    Set up Face ID for faster login
-                  </button>
-                )}
               </div>
             </div>
           )}
