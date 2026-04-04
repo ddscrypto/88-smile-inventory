@@ -5,11 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X, Bell, KeyRound } from "lucide-react";
+import { Plus, Trash2, Users, Info, Smartphone, Pencil, Check, X, Bell, KeyRound, Lock } from "lucide-react";
 import type { Staff } from "@shared/schema";
+import { useSession } from "@/lib/session-context";
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { isDoctor } = useSession();
+
+  // Block non-doctors from accessing this page
+  if (!isDoctor) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+          <Lock className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <h2 className="text-[18px] font-bold mb-2">Doctor Access Only</h2>
+        <p className="text-[13px] text-muted-foreground">Only Dr. Destine can manage staff, passwords, and settings.</p>
+      </div>
+    );
+  }
   const { data: staff = [] } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
 
   const [newName, setNewName] = useState("");

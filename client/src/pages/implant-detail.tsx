@@ -18,6 +18,7 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState("");
+  const { isDoctor } = useSession();
 
   const { data: implant, isLoading } = useQuery<Implant>({ queryKey: ["/api/implants", id] });
   const { data: activities = [] } = useQuery<Activity[]>({ queryKey: ["/api/activities/implant", id] });
@@ -122,9 +123,11 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
           <button onClick={editing ? () => setEditing(false) : startEditing} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-muted transition-colors" data-testid="button-edit">
             {editing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
           </button>
-          <button onClick={() => { if (confirm("Remove this item?")) deleteMutation.mutate(); }} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-destructive/10 text-destructive transition-colors" data-testid="button-delete">
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {isDoctor && (
+            <button onClick={() => { if (confirm("Remove this item?")) deleteMutation.mutate(); }} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-destructive/10 text-destructive transition-colors" data-testid="button-delete">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 export default function MenuPage() {
-  const { staffName, staffRole, logout } = useSession();
+  const { staffName, staffRole, logout, isDoctor } = useSession();
   const [search, setSearch] = useState("");
 
   const allSections = [
@@ -27,13 +27,14 @@ export default function MenuPage() {
         { icon: ClipboardList, label: "Activity Log", href: "/activity", desc: "Full history" },
       ],
     },
-    {
+    // Admin section — Dr. Destine only
+    ...(isDoctor ? [{
       items: [
         { icon: Users, label: "Manage Staff", href: "/settings", desc: "Add, edit, remove team" },
         { icon: Shield, label: "Passwords", href: "/settings", desc: "Staff login security" },
         { icon: Bell, label: "Alert Settings", href: "/settings", desc: "Low stock thresholds" },
       ],
-    },
+    }] : []),
     {
       items: [
         { icon: Info, label: "About", href: "/settings", desc: "App info & version" },
