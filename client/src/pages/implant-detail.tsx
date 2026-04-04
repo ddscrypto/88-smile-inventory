@@ -128,24 +128,28 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
 
         <div className="flex gap-2">
           {implant.status === "trashed" ? (
+            // Trashed — can only restore
             <Button onClick={() => checkinMutation.mutate()} disabled={checkinMutation.isPending} className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold">
               <ArrowDownLeft className="w-4 h-4 mr-1.5" />Restore to Stock
             </Button>
           ) : implant.status === "in" ? (
-            <div className="flex-1 flex gap-2">
-              <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending} className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold" data-testid="button-checkout-detail">
-                <ArrowUpRight className="w-4 h-4 mr-1.5" />Check Out
-              </Button>
-              <Button onClick={() => { if (confirm("Mark as trashed (surgical discard)?")) trashMutation.mutate(); }} disabled={trashMutation.isPending} variant="outline" className="h-11 px-3 rounded-xl border-red-200 text-red-500 hover:bg-red-50" data-testid="button-trash">
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
+            // In stock — can only check out
+            <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending} className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold" data-testid="button-checkout-detail">
+              <ArrowUpRight className="w-4 h-4 mr-1.5" />Check Out
+            </Button>
           ) : (
+            // Checked out — can check in OR mark as surgical trash
             <div className="flex-1 flex gap-2">
               <Button onClick={() => checkinMutation.mutate()} disabled={checkinMutation.isPending} className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold" data-testid="button-checkin-detail">
                 <ArrowDownLeft className="w-4 h-4 mr-1.5" />Check In
               </Button>
-              <Button onClick={() => { if (confirm("Mark as trashed (surgical discard)?")) trashMutation.mutate(); }} disabled={trashMutation.isPending} variant="outline" className="h-11 px-3 rounded-xl border-red-200 text-red-500 hover:bg-red-50" data-testid="button-trash">
+              <Button
+                onClick={() => { if (confirm("Mark as surgical discard? This implant was used but too small.")) trashMutation.mutate(); }}
+                disabled={trashMutation.isPending}
+                variant="outline"
+                className="h-11 px-3 rounded-xl border-red-200 text-red-500 hover:bg-red-50"
+                data-testid="button-trash"
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
