@@ -762,7 +762,19 @@ export default function Scanner() {
               <FieldInput testId="input-supplier" label="Supplier" value={form.supplier} onChange={v => setForm(f => ({...f, supplier: v}))} placeholder="Henry Schein" />
               <FieldInput testId="input-cost" label="Cost" value={form.cost} onChange={v => setForm(f => ({...f, cost: v}))} placeholder="$0.00" />
             </div>
-            <FieldInput testId="input-location" label="Location" value={form.location} onChange={v => setForm(f => ({...f, location: v}))} placeholder="Cabinet A" />
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Location</label>
+              <select
+                data-testid="input-location"
+                value={form.location}
+                onChange={e => setForm(f => ({...f, location: e.target.value}))}
+                className="w-full h-11 rounded-xl border border-border/60 bg-white dark:bg-card px-3 text-[14px] font-medium"
+              >
+                <option value="">— Select —</option>
+                <option value="Storage">Storage</option>
+                <option value="Lab Wall">Lab Wall</option>
+              </select>
+            </div>
             <FieldInput testId="input-notes" label="Notes" value={form.notes} onChange={v => setForm(f => ({...f, notes: v}))} placeholder="Optional..." />
 
             <div className="flex gap-2 pt-1">

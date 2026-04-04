@@ -18,7 +18,7 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState("");
-  const { } = useSession(); // session available for future use
+  const { isDoctor } = useSession();
 
   const { data: implant, isLoading } = useQuery<Implant>({ queryKey: ["/api/implants", id] });
   const { data: activities = [] } = useQuery<Activity[]>({ queryKey: ["/api/activities/implant", id] });
@@ -123,6 +123,11 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
           <button onClick={editing ? () => setEditing(false) : startEditing} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-muted transition-colors" data-testid="button-edit">
             {editing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
           </button>
+          {isDoctor && (
+            <button onClick={() => { if (confirm("Delete this item permanently?")) deleteMutation.mutate(); }} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-destructive/10 text-destructive transition-colors" data-testid="button-delete">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -148,7 +153,18 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <EditField label="Supplier" value={form.supplier || ""} onChange={v => setForm(f => ({...f, supplier: v}))} />
-            <EditField label="Location" value={form.location || ""} onChange={v => setForm(f => ({...f, location: v}))} />
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Location</label>
+              <select
+                value={form.location || ""}
+                onChange={e => setForm(f => ({...f, location: e.target.value}))}
+                className="w-full h-10 rounded-xl border border-border/60 bg-background px-3 text-[14px] font-medium"
+              >
+                <option value="">— Select —</option>
+                <option value="Storage">Storage</option>
+                <option value="Lab Wall">Lab Wall</option>
+              </select>
+            </div>
           </div>
           <EditField label="Notes" value={form.notes || ""} onChange={v => setForm(f => ({...f, notes: v}))} />
           <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="w-full h-11 rounded-xl font-semibold" data-testid="button-save-edit">
