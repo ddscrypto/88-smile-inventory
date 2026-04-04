@@ -123,7 +123,7 @@ export default function Scanner() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  const { staffName: sessionStaff } = useSession();
+  const { staffName: sessionStaff, isDoctor } = useSession();
   const { data: staff = [] } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
   const { data: catalog = [] } = useQuery<CatalogItem[]>({ queryKey: ["/api/catalog"] });
   // Keep a ref so async callbacks always see the latest catalog (avoids stale closure)
@@ -144,7 +144,7 @@ export default function Scanner() {
 
   // Form for additional details (lot, expiration, etc.)
   const [form, setForm] = useState({
-    lotNumber: "", expirationDate: "", supplier: "", cost: "", location: "", notes: "",
+    lotNumber: "", expirationDate: "", supplier: "", cost: "50", location: "", notes: "",
     // For fully manual entry (no catalog match)
     brand: "", productName: "", refNumber: "", diameter: "", length: "", size: "",
   });
@@ -409,7 +409,7 @@ export default function Scanner() {
     setManualEntry(false); setManualQr(""); setSelectedCatalog(null);
     setCatLine("all"); setCatBody("all"); setCatDiameter("all"); setCatSearch("");
     setAutoFilled(false); setIsProcessing(false);
-    setForm({ lotNumber: "", expirationDate: "", supplier: "", cost: "", location: "", notes: "", brand: "", productName: "", refNumber: "", diameter: "", length: "", size: "" });
+    setForm({ lotNumber: "", expirationDate: "", supplier: "", cost: "50", location: "", notes: "", brand: "", productName: "", refNumber: "", diameter: "", length: "", size: "" });
   };
 
   useEffect(() => {
@@ -760,7 +760,7 @@ export default function Scanner() {
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <FieldInput testId="input-supplier" label="Supplier" value={form.supplier} onChange={v => setForm(f => ({...f, supplier: v}))} placeholder="Henry Schein" />
-              <FieldInput testId="input-cost" label="Cost" value={form.cost} onChange={v => setForm(f => ({...f, cost: v}))} placeholder="$0.00" />
+              {isDoctor && <FieldInput testId="input-cost" label="Cost" value={form.cost} onChange={v => setForm(f => ({...f, cost: v}))} placeholder="$50.00" />}
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Location</label>

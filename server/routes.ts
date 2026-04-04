@@ -196,6 +196,21 @@ export async function registerRoutes(
     res.json(implant);
   });
 
+  app.post("/api/implants/:id/trash", (req, res) => {
+    const id = Number(req.params.id);
+    const { staffName, notes } = req.body;
+    const implant = storage.updateImplant(id, { status: "trashed" });
+    if (!implant) return res.status(404).json({ error: "Not found" });
+    storage.createActivity({
+      implantId: id,
+      action: "trashed",
+      staffName: staffName || "Unknown",
+      timestamp: new Date().toISOString(),
+      notes: notes || "Discarded during surgery",
+    });
+    res.json(implant);
+  });
+
   // --- Activity Log ---
   app.get("/api/activities", (req, res) => {
     const limit = Number(req.query.limit) || 50;
@@ -231,7 +246,12 @@ export async function registerRoutes(
       brands[b] = (brands[b] || 0) + 1;
     });
 
-    res.json({ totalItems, inStock, checkedOut, expiringSoon, expired, brands });
+    const trashed = all.filter(i => i.status === "trashed").length;
+    const trashedCost = all
+      .filter(i => i.status === "trashed")
+      .reduce((sum, i) => sum + (parseFloat(i.cost || "0") || 0), 0);
+
+    res.json({ totalItems, inStock, checkedOut, expiringSoon, expired, brands, trashed, trashedCost });
   });
 
   // --- Analytics: Staff Summary ---

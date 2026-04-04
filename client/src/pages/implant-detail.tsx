@@ -68,6 +68,16 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
     },
   });
 
+  const trashMutation = useMutation({
+    mutationFn: async () => { const res = await apiRequest("POST", `/api/implants/${id}/trash`, { staffName: selectedStaff || "Unknown", notes: "Discarded during surgery" }); return res.json(); },
+    onSuccess: () => {
+      ["/api/implants", "/api/stats", "/api/activities"].forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      queryClient.invalidateQueries({ queryKey: ["/api/implants", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities/implant", id] });
+      toast({ title: "Marked as trashed", description: "Item logged as surgical discard" });
+    },
+  });
+
   if (isLoading) return <div className="p-4 space-y-4"><Skeleton className="h-8 w-32" /><Skeleton className="h-40 w-full rounded-xl" /></div>;
 
   if (!implant) return (
@@ -91,9 +101,15 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
           <p className="text-[12px] text-muted-foreground truncate">{implant.productName}</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${implant.status === "in" ? "bg-emerald-500" : "bg-amber-500"}`} />
-          <span className={`text-[12px] font-semibold ${implant.status === "in" ? "text-emerald-500" : "text-amber-500"}`}>
-            {implant.status === "in" ? "In Stock" : "Out"}
+          <span className={`w-2 h-2 rounded-full ${
+            implant.status === "in" ? "bg-emerald-500" :
+            implant.status === "trashed" ? "bg-red-400" : "bg-amber-500"
+          }`} />
+          <span className={`text-[12px] font-semibold ${
+            implant.status === "in" ? "text-emerald-500" :
+            implant.status === "trashed" ? "text-red-400" : "text-amber-500"
+          }`}>
+            {implant.status === "in" ? "In Stock" : implant.status === "trashed" ? "Trashed" : "Out"}
           </span>
           {isExpired && <Badge variant="destructive" className="text-[9px] h-4 ml-1">EXP</Badge>}
         </div>
@@ -111,14 +127,28 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
         </Select>
 
         <div className="flex gap-2">
-          {implant.status === "in" ? (
-            <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending} className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold" data-testid="button-checkout-detail">
-              <ArrowUpRight className="w-4 h-4 mr-1.5" />Check Out
+          {implant.status === "trashed" ? (
+            <Button onClick={() => checkinMutation.mutate()} disabled={checkinMutation.isPending} className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold">
+              <ArrowDownLeft className="w-4 h-4 mr-1.5" />Restore to Stock
             </Button>
+          ) : implant.status === "in" ? (
+            <div className="flex-1 flex gap-2">
+              <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending} className="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold" data-testid="button-checkout-detail">
+                <ArrowUpRight className="w-4 h-4 mr-1.5" />Check Out
+              </Button>
+              <Button onClick={() => { if (confirm("Mark as trashed (surgical discard)?")) trashMutation.mutate(); }} disabled={trashMutation.isPending} variant="outline" className="h-11 px-3 rounded-xl border-red-200 text-red-500 hover:bg-red-50" data-testid="button-trash">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           ) : (
-            <Button onClick={() => checkinMutation.mutate()} disabled={checkinMutation.isPending} className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold" data-testid="button-checkin-detail">
-              <ArrowDownLeft className="w-4 h-4 mr-1.5" />Check In
-            </Button>
+            <div className="flex-1 flex gap-2">
+              <Button onClick={() => checkinMutation.mutate()} disabled={checkinMutation.isPending} className="flex-1 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold" data-testid="button-checkin-detail">
+                <ArrowDownLeft className="w-4 h-4 mr-1.5" />Check In
+              </Button>
+              <Button onClick={() => { if (confirm("Mark as trashed (surgical discard)?")) trashMutation.mutate(); }} disabled={trashMutation.isPending} variant="outline" className="h-11 px-3 rounded-xl border-red-200 text-red-500 hover:bg-red-50" data-testid="button-trash">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           )}
           <button onClick={editing ? () => setEditing(false) : startEditing} className="w-11 h-11 rounded-xl border border-border/60 flex items-center justify-center hover:bg-muted transition-colors" data-testid="button-edit">
             {editing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
@@ -149,7 +179,7 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div><Label className="text-[11px] font-medium text-muted-foreground mb-1 block">Expiration</Label><Input type="date" value={form.expirationDate || ""} onChange={e => setForm(f => ({...f, expirationDate: e.target.value}))} className="h-10 rounded-lg text-sm" /></div>
-            <EditField label="Cost" value={form.cost || ""} onChange={v => setForm(f => ({...f, cost: v}))} />
+            {isDoctor && <EditField label="Cost" value={form.cost || ""} onChange={v => setForm(f => ({...f, cost: v}))} />}
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <EditField label="Supplier" value={form.supplier || ""} onChange={v => setForm(f => ({...f, supplier: v}))} />
@@ -183,7 +213,7 @@ export default function ImplantDetail({ params }: { params: { id: string } }) {
             <InfoCell label={implant.productName?.includes("MUA") ? "Angle" : "Length"} value={implant.productName?.includes("MUA") ? implant.length : implant.length} />
             <InfoCell label="Expiration" value={implant.expirationDate} />
             <InfoCell label="Supplier" value={implant.supplier} />
-            <InfoCell label="Cost" value={implant.cost} />
+            {isDoctor && <InfoCell label="Cost" value={implant.cost} />}
             <InfoCell label="Location" value={implant.location} />
             <InfoCell label="Added By" value={implant.addedBy} />
           </div>
