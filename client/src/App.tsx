@@ -81,7 +81,7 @@ function AppRouter() {
 
 function AppGate() {
   const { unlocked, unlock } = useLockScreen();
-  const { isLoggedIn, login } = useSession();
+  const { isLoggedIn, login, staffName, staffRole, logout } = useSession();
 
   if (!unlocked) {
     return <LockScreen onUnlock={unlock} />;
@@ -91,10 +91,13 @@ function AppGate() {
     return <StaffLogin onLogin={login} />;
   }
 
+  // DEBUG: render plain text first to isolate the crash
   return (
-    <Router hook={useHashLocation}>
-      <AppRouter />
-    </Router>
+    <div style={{ padding: 24, fontFamily: "system-ui" }}>
+      <h1 style={{ fontSize: 20 }}>It works!</h1>
+      <p>Logged in as: {staffName} ({staffRole})</p>
+      <button onClick={logout} style={{ marginTop: 16, padding: "8px 16px", background: "#1d4ed8", color: "white", border: "none", borderRadius: 8 }}>Sign Out</button>
+    </div>
   );
 }
 
