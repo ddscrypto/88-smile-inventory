@@ -69,6 +69,13 @@ export default function Dashboard() {
 
   const recentActivities = activities?.slice(0, 6) || [];
 
+  // Breakdown by product type
+  const allImplants = implants || [];
+  const implantCount = allImplants.filter(i => i.productName && !i.productName.includes("MUA")).length;
+  const muaCount = allImplants.filter(i => i.productName && i.productName.includes("MUA")).length;
+  const implantInStock = allImplants.filter(i => i.status === "in" && !i.productName?.includes("MUA")).length;
+  const muaInStock = allImplants.filter(i => i.status === "in" && i.productName?.includes("MUA")).length;
+
   const expiringItems = (implants || []).filter(i => {
     if (!i.expirationDate) return false;
     const exp = new Date(i.expirationDate);
@@ -88,15 +95,43 @@ export default function Dashboard() {
         <LogoIcon size={40} />
       </div>
 
-      {/* KPI Cards — Shortly style white cards */}
+      {/* KPI Cards */}
       {statsLoading ? (
         <div className="grid grid-cols-2 gap-3">
-          {[1,2,3,4].map(i => <Skeleton key={i} className="h-[80px] rounded-2xl" />)}
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-[90px] rounded-2xl" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard value={stats?.totalItems || 0} label="Total Items" color="text-primary" icon={<Package className="w-4 h-4 text-primary" />} />
-          <KpiCard value={stats?.inStock || 0} label="In Stock" color="text-emerald-600 dark:text-emerald-400" icon={<ArrowDownLeft className="w-4 h-4 text-emerald-500" />} />
+          {/* Total Items — with implant/MUA breakdown */}
+          <div className="rounded-2xl bg-white dark:bg-card border border-border/40 p-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Package className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-[26px] font-bold tabular-nums text-primary leading-none mb-1">{stats?.totalItems || 0}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">Total Items</p>
+            {(implantCount > 0 || muaCount > 0) && (
+              <div className="flex gap-2 mt-1.5">
+                {implantCount > 0 && <span className="text-[10px] bg-blue-50 text-blue-600 rounded-full px-1.5 py-0.5 font-medium">{implantCount} implant{implantCount !== 1 ? "s" : ""}</span>}
+                {muaCount > 0 && <span className="text-[10px] bg-purple-50 text-purple-600 rounded-full px-1.5 py-0.5 font-medium">{muaCount} MUA{muaCount !== 1 ? "s" : ""}</span>}
+              </div>
+            )}
+          </div>
+
+          {/* In Stock — with implant/MUA breakdown */}
+          <div className="rounded-2xl bg-white dark:bg-card border border-border/40 p-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+            </div>
+            <p className="text-[26px] font-bold tabular-nums text-emerald-600 dark:text-emerald-400 leading-none mb-1">{stats?.inStock || 0}</p>
+            <p className="text-[11px] text-muted-foreground font-medium">In Stock</p>
+            {(implantInStock > 0 || muaInStock > 0) && (
+              <div className="flex gap-2 mt-1.5">
+                {implantInStock > 0 && <span className="text-[10px] bg-emerald-50 text-emerald-600 rounded-full px-1.5 py-0.5 font-medium">{implantInStock} implant{implantInStock !== 1 ? "s" : ""}</span>}
+                {muaInStock > 0 && <span className="text-[10px] bg-purple-50 text-purple-600 rounded-full px-1.5 py-0.5 font-medium">{muaInStock} MUA{muaInStock !== 1 ? "s" : ""}</span>}
+              </div>
+            )}
+          </div>
+
           <KpiCard value={stats?.checkedOut || 0} label="Checked Out" color="text-orange-500" icon={<ArrowUpRight className="w-4 h-4 text-orange-500" />} />
           <KpiCard value={(stats?.expiringSoon || 0) + (stats?.expired || 0)} label="Expiring" color="text-red-400" icon={<AlertTriangle className="w-4 h-4 text-red-400" />} />
         </div>
