@@ -428,11 +428,11 @@ export default function Scanner() {
   }, []);
 
   // Catalog filtering
-  const lines = [...new Set(catalog.map(c => c.line))];
+  const lines = Array.from(new Set(catalog.map(c => c.line)));
   const filteredByLine = catLine === "all" ? catalog : catalog.filter(c => c.line === catLine);
-  const bodies = [...new Set(filteredByLine.map(c => c.body))];
+  const bodies = Array.from(new Set(filteredByLine.map(c => c.body)));
   const filteredByBody = catBody === "all" ? filteredByLine : filteredByLine.filter(c => c.body === catBody);
-  const diameters = [...new Set(filteredByBody.map(c => c.diameter))].sort((a,b) => parseFloat(a) - parseFloat(b));
+  const diameters = Array.from(new Set(filteredByBody.map(c => c.diameter))).sort((a,b) => parseFloat(a) - parseFloat(b));
   const filteredByDiameter = catDiameter === "all" ? filteredByBody : filteredByBody.filter(c => c.diameter === catDiameter);
   const filteredCatalog = catSearch
     ? filteredByDiameter.filter(c => `${c.body} ${c.line} ${c.diameter} ${c.length} ${c.refNumber}`.toLowerCase().includes(catSearch.toLowerCase()))

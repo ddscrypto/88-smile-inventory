@@ -43,7 +43,7 @@ interface StaffSummary {
 }
 
 export default function Dashboard() {
-  const { staffName, isDoctor } = useSession();
+  const { isDoctor } = useSession();
 
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -53,7 +53,7 @@ export default function Dashboard() {
     queryKey: ["/api/activities"],
   });
 
-  const { data: implants } = useQuery<Implant[]>({
+  const { data: implants, isLoading: implantLoading } = useQuery<Implant[]>({
     queryKey: ["/api/implants"],
   });
 
