@@ -11,6 +11,7 @@ import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Pencil, Trash2, Save, X, Packag
 import { useLocation } from "wouter";
 import { useState } from "react";
 import type { Implant, Activity, Staff } from "@shared/schema";
+import { useSession } from "@/lib/session-context";
 
 export default function ImplantDetail({ params }: { params: { id: string } }) {
   const id = Number(params.id);
