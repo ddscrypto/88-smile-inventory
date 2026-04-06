@@ -20,42 +20,6 @@ import AppLayout from "@/components/app-layout";
 import LockScreen, { useLockScreen } from "@/pages/lock-screen";
 import StaffLogin from "@/pages/staff-login";
 import { SessionProvider, useSession } from "@/lib/session-context";
-import { useState, type ReactNode } from "react";
-
-// Simple error boundary using state
-function SafeRender({ children }: { children: ReactNode }) {
-  const [error, setError] = useState<string | null>(null);
-
-  if (error) {
-    return (
-      <div style={{ padding: 24, fontFamily: "system-ui" }}>
-        <h2 style={{ color: "red", fontSize: 16 }}>Error Report</h2>
-        <p style={{ fontSize: 13, color: "#666" }}>Screenshot this and send it</p>
-        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: 11, background: "#f5f5f5", padding: 12, borderRadius: 8, marginTop: 8 }}>{error}</pre>
-        <button
-          onClick={() => { setError(null); window.location.hash = "/"; window.location.reload(); }}
-          style={{ marginTop: 16, background: "#1d4ed8", color: "white", border: "none", borderRadius: 12, padding: "12px 32px", fontSize: 15, fontWeight: 600 }}
-        >
-          Reload
-        </button>
-      </div>
-    );
-  }
-
-  // Use window.onerror to catch render crashes
-  if (typeof window !== "undefined" && !(window as any).__errorHandlerSet) {
-    (window as any).__errorHandlerSet = true;
-    window.onerror = (_msg, _src, _line, _col, err) => {
-      setError(String(err?.message || _msg) + "\n\n" + String(err?.stack || ""));
-      return true;
-    };
-    window.addEventListener("unhandledrejection", (e) => {
-      setError("Unhandled promise: " + String(e.reason?.message || e.reason) + "\n\n" + String(e.reason?.stack || ""));
-    });
-  }
-
-  return <>{children}</>;
-}
 
 function AppRouter() {
   return (
@@ -81,7 +45,7 @@ function AppRouter() {
 
 function AppGate() {
   const { unlocked, unlock } = useLockScreen();
-  const { isLoggedIn, login, staffName, staffRole, logout } = useSession();
+  const { isLoggedIn, login } = useSession();
 
   if (!unlocked) {
     return <LockScreen onUnlock={unlock} />;
@@ -91,28 +55,23 @@ function AppGate() {
     return <StaffLogin onLogin={login} />;
   }
 
-  // DEBUG: render plain text first to isolate the crash
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 20 }}>It works!</h1>
-      <p>Logged in as: {staffName} ({staffRole})</p>
-      <button onClick={logout} style={{ marginTop: 16, padding: "8px 16px", background: "#1d4ed8", color: "white", border: "none", borderRadius: 8 }}>Sign Out</button>
-    </div>
+    <Router hook={useHashLocation}>
+      <AppRouter />
+    </Router>
   );
 }
 
 function App() {
   return (
-    <SafeRender>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <SessionProvider>
-            <Toaster />
-            <AppGate />
-          </SessionProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </SafeRender>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SessionProvider>
+          <Toaster />
+          <AppGate />
+        </SessionProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
