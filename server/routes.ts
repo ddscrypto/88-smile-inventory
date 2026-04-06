@@ -169,7 +169,7 @@ export async function registerRoutes(
   app.post("/api/implants/:id/checkout", (req, res) => {
     const id = Number(req.params.id);
     const { staffName, notes } = req.body;
-    const implant = storage.updateImplant(id, { status: "out" });
+    const implant = storage.updateImplant(id, { status: "out", lastActionAt: new Date().toISOString() });
     if (!implant) return res.status(404).json({ error: "Not found" });
     storage.createActivity({
       implantId: id,
@@ -184,7 +184,7 @@ export async function registerRoutes(
   app.post("/api/implants/:id/checkin", (req, res) => {
     const id = Number(req.params.id);
     const { staffName, notes } = req.body;
-    const implant = storage.updateImplant(id, { status: "in" });
+    const implant = storage.updateImplant(id, { status: "in", lastActionAt: new Date().toISOString() });
     if (!implant) return res.status(404).json({ error: "Not found" });
     storage.createActivity({
       implantId: id,
@@ -199,7 +199,7 @@ export async function registerRoutes(
   app.post("/api/implants/:id/trash", (req, res) => {
     const id = Number(req.params.id);
     const { staffName, notes } = req.body;
-    const implant = storage.updateImplant(id, { status: "trashed" });
+    const implant = storage.updateImplant(id, { status: "trashed", lastActionAt: new Date().toISOString() });
     if (!implant) return res.status(404).json({ error: "Not found" });
     storage.createActivity({
       implantId: id,

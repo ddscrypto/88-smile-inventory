@@ -138,7 +138,9 @@ export default function Dashboard() {
             )}
           </div>
 
-          <KpiCard value={stats?.checkedOut || 0} label="Checked Out" color="text-orange-500" icon={<ArrowUpRight className="w-4 h-4 text-orange-500" />} />
+          <Link href="/checked-out">
+            <KpiCard value={stats?.checkedOut || 0} label="Checked Out" color="text-orange-500" icon={<ArrowUpRight className="w-4 h-4 text-orange-500" />} />
+          </Link>
           <KpiCard value={(stats?.expiringSoon || 0) + (stats?.expired || 0)} label="Expiring" color="text-red-400" icon={<AlertTriangle className="w-4 h-4 text-red-400" />} />
         </div>
       )}

@@ -52,6 +52,7 @@ export const implants = sqliteTable("implants", {
   status: text("status").notNull().default("in"), // in, out
   addedBy: text("added_by").notNull().default(""),
   addedAt: text("added_at").notNull(),
+  lastActionAt: text("last_action_at").notNull().default(""),
   notes: text("notes").notNull().default(""),
 });
 

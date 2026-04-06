@@ -13,6 +13,7 @@ import ActivityPage from "@/pages/activity";
 import StaffReportPage from "@/pages/staff-report";
 import SettingsPage from "@/pages/settings";
 import LibraryPage from "@/pages/library";
+import CheckedOutPage from "@/pages/checked-out";
 import SearchPage from "@/pages/search-page";
 import NotificationsPage from "@/pages/notifications";
 import MenuPage from "@/pages/menu-page";
@@ -36,6 +37,7 @@ function AppRouter() {
         <Route path="/activity" component={ActivityPage} />
         <Route path="/staff-report" component={StaffReportPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/checked-out" component={CheckedOutPage} />
         <Route path="/library" component={LibraryPage} />
         <Route component={NotFound} />
       </Switch>

@@ -152,6 +152,12 @@ export class DatabaseStorage implements IStorage {
       this.seedCatalog();
     }
 
+    // Migration: add last_action_at column to implants
+    try { sqlite.exec(`ALTER TABLE implants ADD COLUMN last_action_at TEXT NOT NULL DEFAULT ''`); } catch {}
+
+    // Auto-delete: remove checked-out items older than 48 hours
+    sqlite.exec(`DELETE FROM implants WHERE status = 'out' AND last_action_at != '' AND last_action_at < datetime('now', '-48 hours')`);
+
     // Migration: create webauthn_credentials table
     sqlite.exec(`CREATE TABLE IF NOT EXISTS webauthn_credentials (
       staff_id INTEGER PRIMARY KEY,
