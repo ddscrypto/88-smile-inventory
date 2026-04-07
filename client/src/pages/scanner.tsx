@@ -267,44 +267,44 @@ export default function Scanner() {
       }
     }
 
-    // 3. AUTO-MATCH from catalog — try multiple strategies
-    // Strategy A: Direct GTIN-to-catalog matching (works for Neodent without GUDID)
+    // 3. AUTO-MATCH from catalog
     if (gs1.gtin) {
-      const localMatch = matchGtinToCatalog(gs1.gtin);
-      if (localMatch) {
-        autoFillFromCatalog(localMatch, gs1);
-        return;
-      }
-    }
+      // Helper to find catalog match from a ref number
+      const findCatalogMatch = (ref: string) => {
+        const refItem = ref.includes(".") ? ref.split(".").pop()! : "";
+        return catalogRef.current.find(c => {
+          if (c.refNumber === ref) return true;
+          if (c.refNumber.replace(/\./g, "") === ref.replace(/\./g, "")) return true;
+          const catItem = c.refNumber.includes(".") ? c.refNumber.split(".").pop()! : "";
+          if (refItem && catItem && catItem === refItem) return true;
+          return false;
+        }) || null;
+      };
 
-    // Strategy B: Try GUDID API (works for FDA-registered devices)
-    let gudidRef = "";
-    let gudidError = "";
-    if (gs1.gtin) {
+      // Strategy A: GUDID lookup (most reliable for Neodent — gets exact REF)
       try {
-        const lookupRes = await apiRequest("GET", `/api/lookup-gtin/${gs1.gtin}`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const lookupRes = await fetch(`/api/lookup-gtin/${gs1.gtin}`, { signal: controller.signal });
+        clearTimeout(timeout);
         const gudid = await lookupRes.json();
-        gudidRef = gudid.catalogNumber || "";
-
+        const gudidRef: string = gudid.catalogNumber || "";
         if (gudidRef) {
-          // Neodent uses XXX.NNN format. Old refs (109.NNN) vs new refs (140.NNN)
-          // share the same NNN item number after the dot — match on that.
-          const gudidItem = gudidRef.includes(".") ? gudidRef.split(".").pop()! : "";
-          const match = catalogRef.current.find(c => {
-            if (c.refNumber === gudidRef) return true;
-            if (c.refNumber.replace(/\./g, "") === gudidRef.replace(/\./g, "")) return true;
-            // Match on item number after the dot (handles 109.947 <-> 140.947)
-            const catItem = c.refNumber.includes(".") ? c.refNumber.split(".").pop()! : "";
-            if (gudidItem && catItem && catItem === gudidItem) return true;
-            return false;
-          });
+          const match = findCatalogMatch(gudidRef);
           if (match) {
             autoFillFromCatalog(match, gs1);
             return;
           }
         }
-      } catch (e: any) {
-        gudidError = e?.message || "fetch failed";
+      } catch {
+        // GUDID failed — fall through to local matching
+      }
+
+      // Strategy B: Local GTIN-to-catalog matching (offline fallback)
+      const localMatch = matchGtinToCatalog(gs1.gtin);
+      if (localMatch) {
+        autoFillFromCatalog(localMatch, gs1);
+        return;
       }
     }
 
