@@ -576,46 +576,75 @@ export default function Scanner() {
             <Button variant="outline" onClick={() => navigate(`/implant/${foundImplant.id}`)} className="h-11 rounded-xl font-semibold" data-testid="button-view-detail">Details</Button>
           </div>
 
-          {/* Add another from same lot (e.g. 5-pack with identical barcodes) */}
-          <Button
-            variant="outline"
-            onClick={async () => {
-              // Count how many with this lot prefix already exist
-              const gs1 = parseGS1(scannedData);
-              const baseLot = gs1.lot || foundImplant.lotNumber;
-              let count = 1;
-              try {
-                const allRes = await apiRequest("GET", "/api/implants");
-                const all: Implant[] = await allRes.json();
-                count = all.filter(i => i.lotNumber && i.lotNumber.startsWith(baseLot)).length + 1;
-              } catch {}
+          {/* Add more from same lot (e.g. 5-pack with identical barcodes) */}
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+            <p className="text-[13px] font-semibold text-blue-700 dark:text-blue-400 mb-2">Same lot, multiple units?</p>
+            <p className="text-[11px] text-blue-600/70 dark:text-blue-400/70 mb-3">Enter how many more to add (each gets a unique lot suffix)</p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="50"
+                defaultValue="1"
+                id="batch-qty"
+                className="w-20 h-10 rounded-xl border border-blue-200 bg-white dark:bg-card text-center text-[15px] font-semibold"
+              />
+              <Button
+                onClick={async () => {
+                  const qty = parseInt((document.getElementById("batch-qty") as HTMLInputElement)?.value || "1");
+                  if (qty < 1 || qty > 50) return;
 
-              // Pre-fill form with same product info but incremented lot
-              const match = catalogRef.current.find(c => c.refNumber === foundImplant.refNumber);
-              if (match) {
-                setSelectedCatalog(match);
-              }
-              setForm(f => ({
-                ...f,
-                brand: foundImplant.brand,
-                productName: foundImplant.productName,
-                refNumber: foundImplant.refNumber,
-                diameter: foundImplant.diameter,
-                length: foundImplant.length,
-                size: foundImplant.size,
-                lotNumber: `${baseLot}-${count}`,
-                expirationDate: foundImplant.expirationDate,
-                supplier: foundImplant.supplier || "",
-                cost: foundImplant.cost || "50",
-                location: foundImplant.location || "",
-              }));
-              setAutoFilled(true);
-              setMode("manualForm");
-            }}
-            className="w-full h-11 rounded-xl font-semibold border-blue-200 text-blue-600 hover:bg-blue-50"
-          >
-            <Package className="w-4 h-4 mr-1.5" />Add Another from Same Lot
-          </Button>
+                  const gs1 = parseGS1(scannedData);
+                  const baseLot = gs1.lot || foundImplant.lotNumber;
+
+                  // Count existing items with this lot prefix
+                  let existingCount = 0;
+                  try {
+                    const allRes = await apiRequest("GET", "/api/implants");
+                    const all: Implant[] = await allRes.json();
+                    existingCount = all.filter(i => i.lotNumber && i.lotNumber.startsWith(baseLot)).length;
+                  } catch {}
+
+                  // Create each item
+                  let added = 0;
+                  for (let n = 1; n <= qty; n++) {
+                    const lotNum = `${baseLot}-${existingCount + n}`;
+                    try {
+                      await apiRequest("POST", "/api/implants", {
+                        brand: foundImplant.brand,
+                        productName: foundImplant.productName,
+                        refNumber: foundImplant.refNumber,
+                        lotNumber: lotNum,
+                        diameter: foundImplant.diameter,
+                        length: foundImplant.length,
+                        size: foundImplant.size,
+                        expirationDate: foundImplant.expirationDate,
+                        qrData: scannedData + "-" + (existingCount + n),
+                        supplier: foundImplant.supplier || "",
+                        cost: foundImplant.cost || "50",
+                        location: foundImplant.location || "",
+                        addedBy: activeStaff,
+                        addedAt: new Date().toISOString(),
+                        status: "in",
+                        quantity: 1,
+                        notes: `Batch add ${n} of ${qty} from lot ${baseLot}`,
+                      });
+                      added++;
+                    } catch {}
+                  }
+
+                  queryClient.invalidateQueries({ queryKey: ["/api/implants"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+                  toast({ title: `Added ${added} item${added !== 1 ? "s" : ""} to inventory` });
+                  resetScanner();
+                }}
+                className="flex-1 h-10 rounded-xl font-semibold bg-blue-600 hover:bg-blue-700 text-white text-[13px]"
+              >
+                <Package className="w-4 h-4 mr-1.5" />Add to Inventory
+              </Button>
+            </div>
+          </div>
 
           <button onClick={resetScanner} className="w-full text-center text-[13px] text-muted-foreground py-2 hover:text-foreground transition-colors" data-testid="button-scan-another">Scan another</button>
         </div>
