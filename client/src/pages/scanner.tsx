@@ -240,31 +240,24 @@ export default function Scanner() {
       expirationDate: gs1.expiration || f.expirationDate,
     }));
 
-    // 2. DUPLICATE CHECK — by QR data first, then by lot number
+    // 2. DUPLICATE CHECK — by QR data or lot number
+    // Find ALL existing items with the same lot to count them
+    let existingCount = 0;
+    let existingMatch: Implant | null = null;
     try {
-      const res = await apiRequest("GET", `/api/implants/qr/${encodeURIComponent(data)}`);
-      const implant = await res.json();
-      setFoundImplant(implant);
+      const allRes = await apiRequest("GET", "/api/implants");
+      const allImplants: Implant[] = await allRes.json();
+      const lotMatches = gs1.lot ? allImplants.filter(i => i.lotNumber && i.lotNumber.startsWith(gs1.lot!)) : [];
+      const qrMatches = allImplants.filter(i => i.qrData === data);
+      existingCount = Math.max(lotMatches.length, qrMatches.length);
+      existingMatch = lotMatches[0] || qrMatches[0] || null;
+    } catch {}
+
+    if (existingMatch && existingCount > 0) {
+      setFoundImplant(existingMatch);
       setMode("found");
       setIsProcessing(false);
       return;
-    } catch {
-      // Not found by QR — try lot number
-    }
-
-    if (gs1.lot) {
-      try {
-        const lotRes = await apiRequest("GET", `/api/implants/lot/${encodeURIComponent(gs1.lot)}`);
-        const lotMatch = await lotRes.json();
-        if (lotMatch && lotMatch.id) {
-          setFoundImplant(lotMatch);
-          setMode("found");
-          setIsProcessing(false);
-          return;
-        }
-      } catch {
-        // Not found by lot — continue to add flow
-      }
     }
 
     // 3. AUTO-MATCH from catalog
@@ -582,6 +575,47 @@ export default function Scanner() {
             )}
             <Button variant="outline" onClick={() => navigate(`/implant/${foundImplant.id}`)} className="h-11 rounded-xl font-semibold" data-testid="button-view-detail">Details</Button>
           </div>
+
+          {/* Add another from same lot (e.g. 5-pack with identical barcodes) */}
+          <Button
+            variant="outline"
+            onClick={async () => {
+              // Count how many with this lot prefix already exist
+              const gs1 = parseGS1(scannedData);
+              const baseLot = gs1.lot || foundImplant.lotNumber;
+              let count = 1;
+              try {
+                const allRes = await apiRequest("GET", "/api/implants");
+                const all: Implant[] = await allRes.json();
+                count = all.filter(i => i.lotNumber && i.lotNumber.startsWith(baseLot)).length + 1;
+              } catch {}
+
+              // Pre-fill form with same product info but incremented lot
+              const match = catalogRef.current.find(c => c.refNumber === foundImplant.refNumber);
+              if (match) {
+                setSelectedCatalog(match);
+              }
+              setForm(f => ({
+                ...f,
+                brand: foundImplant.brand,
+                productName: foundImplant.productName,
+                refNumber: foundImplant.refNumber,
+                diameter: foundImplant.diameter,
+                length: foundImplant.length,
+                size: foundImplant.size,
+                lotNumber: `${baseLot}-${count}`,
+                expirationDate: foundImplant.expirationDate,
+                supplier: foundImplant.supplier || "",
+                cost: foundImplant.cost || "50",
+                location: foundImplant.location || "",
+              }));
+              setAutoFilled(true);
+              setMode("manualForm");
+            }}
+            className="w-full h-11 rounded-xl font-semibold border-blue-200 text-blue-600 hover:bg-blue-50"
+          >
+            <Package className="w-4 h-4 mr-1.5" />Add Another from Same Lot
+          </Button>
 
           <button onClick={resetScanner} className="w-full text-center text-[13px] text-muted-foreground py-2 hover:text-foreground transition-colors" data-testid="button-scan-another">Scan another</button>
         </div>
