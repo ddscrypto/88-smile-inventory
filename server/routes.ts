@@ -10,24 +10,48 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // --- GTIN Lookup (GUDID proxy to avoid CORS) ---
+  // Local GTIN-to-REF fallback for products not in GUDID (e.g., Helix Short MUAs)
+  const LOCAL_GTIN_MAP: Record<string, { catalogNumber: string; brandName: string; deviceDescription: string }> = {
+    // HS MUA straight 0°
+    "07899878057528": { catalogNumber: "115.291", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 0.2mm" },
+    "07899878057535": { catalogNumber: "115.292", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 1.5mm" },
+    "07899878057542": { catalogNumber: "115.293", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 2.5mm" },
+    "07899878057559": { catalogNumber: "115.294", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 3.5mm" },
+    "07899878057566": { catalogNumber: "115.295", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 4.5mm" },
+    // HS MUA angled 17°
+    "07899878057573": { catalogNumber: "115.296", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 17D 0.6mm" },
+    "07899878057580": { catalogNumber: "115.298", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 17D 2.5mm" },
+    "07899878057597": { catalogNumber: "115.297", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 17D 1.5mm" },
+    "07899878057603": { catalogNumber: "115.299", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 17D 3.5mm" },
+  };
+
   app.get("/api/lookup-gtin/:gtin", async (req, res) => {
     const gtin = req.params.gtin;
     try {
       const response = await fetch(`https://accessgudid.nlm.nih.gov/api/v3/devices/lookup.json?di=${gtin}`);
-      if (!response.ok) return res.status(404).json({ error: "GTIN not found" });
-      const data = await response.json();
-      const device = (data as any)?.gudid?.device;
-      if (!device) return res.status(404).json({ error: "Device not found" });
-
-      res.json({
-        catalogNumber: device.catalogNumber || "",
-        brandName: device.brandName || "",
-        deviceDescription: device.deviceDescription || "",
-        versionModelNumber: device.versionModelNumber || "",
-      });
-    } catch (err) {
-      res.status(500).json({ error: "GUDID lookup failed" });
+      if (response.ok) {
+        const data = await response.json();
+        const device = (data as any)?.gudid?.device;
+        if (device?.catalogNumber) {
+          return res.json({
+            catalogNumber: device.catalogNumber || "",
+            brandName: device.brandName || "",
+            deviceDescription: device.deviceDescription || "",
+            versionModelNumber: device.versionModelNumber || "",
+          });
+        }
+      }
+    } catch {
+      // GUDID failed — fall through to local map
     }
+
+    // Fallback: check local GTIN map (for products not in GUDID)
+    const local = LOCAL_GTIN_MAP[gtin];
+    if (local) {
+      return res.json(local);
+    }
+
+    res.status(404).json({ error: "GTIN not found" });
   });
 
   // --- Catalog ---

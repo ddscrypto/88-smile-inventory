@@ -309,6 +309,32 @@ export class DatabaseStorage implements IStorage {
       items.push({ brand: nd, line: "Grand Morse", body: "MUA", surface: "30°", diameter: gh, length: "MUA", ref, connection: "Grand Morse", platform: "MUA" });
     }
 
+    // =============================================
+    // HS MUA — Mini Conical Abutments (Helix Short)
+    // =============================================
+    // Straight 0° HS MUAs
+    const hsStraight: Record<string, string> = {
+      "0.2": "115.291",
+      "1.5": "115.292",
+      "2.5": "115.293",
+      "3.5": "115.294",
+      "4.5": "115.295",
+    };
+    for (const [gh, ref] of Object.entries(hsStraight)) {
+      items.push({ brand: nd, line: "Helix Short", body: "MUA", surface: "0°", diameter: gh, length: "MUA", ref, connection: "Helix Short", platform: "MUA" });
+    }
+
+    // Angled 17° HS MUAs
+    const hsAngled17: Record<string, string> = {
+      "0.6": "115.296",
+      "1.5": "115.297",
+      "2.5": "115.298",
+      "3.5": "115.299",
+    };
+    for (const [gh, ref] of Object.entries(hsAngled17)) {
+      items.push({ brand: nd, line: "Helix Short", body: "MUA", surface: "17°", diameter: gh, length: "MUA", ref, connection: "Helix Short", platform: "MUA" });
+    }
+
     return items;
   }
 
