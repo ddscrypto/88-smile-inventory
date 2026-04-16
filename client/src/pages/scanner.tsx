@@ -262,14 +262,11 @@ export default function Scanner() {
 
     // 3. AUTO-MATCH from catalog
     if (gs1.gtin) {
-      // Helper to find catalog match from a ref number
+      // Helper to find catalog match from a ref number (exact match only)
       const findCatalogMatch = (ref: string) => {
-        const refItem = ref.includes(".") ? ref.split(".").pop()! : "";
         return catalogRef.current.find(c => {
           if (c.refNumber === ref) return true;
           if (c.refNumber.replace(/\./g, "") === ref.replace(/\./g, "")) return true;
-          const catItem = c.refNumber.includes(".") ? c.refNumber.split(".").pop()! : "";
-          if (refItem && catItem && catItem === refItem) return true;
           return false;
         }) || null;
       };

@@ -25,6 +25,24 @@ export async function registerRoutes(
     "07899878057603": { catalogNumber: "115.299", brandName: "Neodent", deviceDescription: "HS MINI CONICAL ABUTMENT 17D 3.5mm" },
   };
 
+  // Old 109.xxx to new 140.xxx REF translation (confirmed from physical boxes)
+  // GUDID returns old 109 numbers but our catalog uses 140 numbers
+  const OLD_TO_NEW_REF: Record<string, string> = {
+    // 3.5mm Helix GM (109.943-947 -> 140.943-947: same numbers, no translation needed)
+    // 5.0mm Helix GM: 109.948-952 are unknown old refs, but 109.953-957 are confirmed as 5.0mm
+    "109.953": "140.948",  // 5.0x8mm (confirmed by box)
+    "109.954": "140.949",  // 5.0x10mm (confirmed by box)
+    "109.955": "140.950",  // 5.0x11.5mm (inferred)
+    "109.956": "140.951",  // 5.0x13mm (inferred)
+    "109.957": "140.952",  // 5.0x16mm (inferred)
+    // 3.75mm Helix GM: these are the ones currently at 140.953-957
+    "109.948": "140.953",  // 3.75x8mm (inferred)
+    "109.949": "140.954",  // 3.75x10mm (inferred)
+    "109.950": "140.955",  // 3.75x11.5mm (inferred)
+    "109.951": "140.956",  // 3.75x13mm (inferred)
+    "109.952": "140.957",  // 3.75x16mm (inferred)
+  };
+
   app.get("/api/lookup-gtin/:gtin", async (req, res) => {
     const gtin = req.params.gtin;
     try {
@@ -33,8 +51,11 @@ export async function registerRoutes(
         const data = await response.json();
         const device = (data as any)?.gudid?.device;
         if (device?.catalogNumber) {
+          // Translate old 109.xxx REFs to new 140.xxx REFs
+          const rawRef = device.catalogNumber as string;
+          const translatedRef = OLD_TO_NEW_REF[rawRef] || rawRef;
           return res.json({
-            catalogNumber: device.catalogNumber || "",
+            catalogNumber: translatedRef,
             brandName: device.brandName || "",
             deviceDescription: device.deviceDescription || "",
             versionModelNumber: device.versionModelNumber || "",
